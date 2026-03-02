@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4CAF50">
+    <title>VALAHIA DIET GYM - Pro</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Chart.js for Interactive Charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-content">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <h1 class="app-title">VALAHIA DIET GYM</h1>
+                <span style="background: linear-gradient(135deg, #FFD700, #FFA500); padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; color: #000; box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);">PRO</span>
+            </div>
+            <div class="header-actions">
+                <button onclick="showNotificationSettings()" class="btn-notification" title="Impostazioni Notifiche">🔔</button>
+                <div class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark Mode"></div>
+                <span id="current-user" class="user-badge"></span>
+                <button onclick="logout()" class="btn-logout">🔄 Cambia Utente</button>
+                <button onclick="closeApp()" class="btn-close-app" title="Chiudi App">✖️</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="app-main">
+        <!-- Dashboard Cards -->
+        <div class="dashboard">
+            <div class="card card-today">
+                <h2>📅 Oggi</h2>
+                <p id="current-date" class="date-display"></p>
+            </div>
+
+            <div class="card card-weight">
+                <h2>⚖️ Peso Attuale</h2>
+                <p id="current-weight" class="weight-display">-- kg</p>
+                <button onclick="showWeightModal()" class="btn-small">✏️ Aggiorna</button>
+            </div>
+
+            <div class="card card-calories">
+                <h2>🔥 Calorie Oggi</h2>
+                <p id="today-calories" class="calories-display">0 kcal</p>
+            </div>
+
+            <div class="card card-goal">
+                <h2>🎯 Obiettivo</h2>
+                <p id="goal-status" class="goal-display">Imposta obiettivo</p>
+                <button onclick="showGoalModal()" class="btn-small">⚙️ Configura</button>
+            </div>
+
+            <div class="card card-daily-activity">
+                <h2>🏃 Attività Giornaliera</h2>
+                <p id="daily-steps" class="steps-display">0 passi</p>
+                <p id="daily-steps-calories" class="calories-extra">0 kcal extra</p>
+                <button onclick="showDailyStepsModal()" class="btn-small">📊 Aggiungi Passi</button>
+            </div>
+        </div>
+
+        <!-- Today's Plan Section -->
+        <section id="today-plan-section" class="today-plan-section" style="display: none;">
+            <h2>📅 Il Tuo Giorno - <span id="today-day-name"></span></h2>
+            <p style="color: var(--text-muted); margin-bottom: 24px;">Piano personalizzato basato sul tuo obiettivo</p>
+
+            <!-- Today's Meals -->
+            <div class="today-card">
+                <div class="today-card-header">
+                    <h3>🍽️ Pasti Suggeriti Oggi</h3>
+                    <span id="meal-plan-calories" class="calorie-badge">-- kcal</span>
+                </div>
+                <div id="today-meals-content" class="today-content">
+                    <!-- Pasti generati automaticamente -->
+                </div>
+                <div class="today-actions">
+                    <button onclick="confirmMealPlan()" class="btn-success">✅ Ho mangiato come previsto</button>
+                    <button onclick="modifyMealPlan()" class="btn-secondary">✏️ Ho mangiato diversamente</button>
+                </div>
+            </div>
+
+            <!-- Today's Workout -->
+            <div class="today-card">
+                <div class="today-card-header">
+                    <h3>🏋️ Allenamento di Oggi</h3>
+                    <span id="workout-plan-calories" class="calorie-badge">-- kcal</span>
+                </div>
+                <div id="today-workout-content" class="today-content">
+                    <!-- Allenamento generato automaticamente -->
+                </div>
+                <div class="today-actions">
+                    <button onclick="confirmWorkoutPlan()" class="btn-success">✅ Ho fatto questo allenamento</button>
+                    <button onclick="modifyWorkoutPlan()" class="btn-secondary">✏️ Ho fatto altro/niente</button>
+                </div>
+            </div>
+
+            <!-- Daily Summary -->
+            <div class="daily-summary">
+                <h3>📊 Riepilogo Giornaliero</h3>
+                <div class="summary-stats">
+                    <div class="summary-stat">
+                        <span class="summary-label">Pianificato</span>
+                        <span id="summary-planned" class="summary-value">0 kcal</span>
+                    </div>
+                    <div class="summary-stat">
+                        <span class="summary-label">Reale</span>
+                        <span id="summary-actual" class="summary-value">0 kcal</span>
+                    </div>
+                    <div class="summary-stat" id="summary-delta-stat">
+                        <span class="summary-label">Delta</span>
+                        <span id="summary-delta" class="summary-value">0 kcal</span>
+                    </div>
+                </div>
+                <div id="compensation-message" class="compensation-message" style="display: none;">
+                    <!-- Messaggio di compensazione -->
+                </div>
+            </div>
+
+            <!-- Weekly Progress Chart -->
+            <div class="weekly-chart">
+                <h3>📈 Progresso Settimana</h3>
+                <div id="weekly-deficit-chart" class="deficit-chart">
+                    <!-- Grafico deficit settimanale -->
+                </div>
+                <div class="week-summary">
+                    <p><strong>Deficit Accumulato:</strong> <span id="week-total-deficit">0</span> kcal / <span id="week-target-deficit">0</span> kcal</p>
+                    <p id="week-pace-message"></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Goal Progress Section -->
+        <section id="goal-progress-section" class="goal-section" style="display: none;">
+            <h2>📊 Progresso Obiettivo</h2>
+            <div class="goal-stats">
+                <div class="goal-stat">
+                    <span class="goal-label">Peso Attuale</span>
+                    <span id="goal-current-weight" class="goal-value">-- kg</span>
+                </div>
+                <div class="goal-stat">
+                    <span class="goal-label">Peso Target</span>
+                    <span id="goal-target-weight" class="goal-value">-- kg</span>
+                </div>
+                <div class="goal-stat">
+                    <span class="goal-label">Da Perdere</span>
+                    <span id="goal-remaining" class="goal-value">-- kg</span>
+                </div>
+                <div class="goal-stat">
+                    <span class="goal-label">Calorie Target</span>
+                    <span id="goal-calorie-target" class="goal-value">-- kcal</span>
+                </div>
+            </div>
+
+            <div class="progress-bar-container">
+                <div class="progress-bar">
+                    <div id="goal-progress-bar" class="progress-fill" style="width: 0%"></div>
+                </div>
+                <p id="goal-progress-text" class="progress-text">0% completato</p>
+            </div>
+
+            <div id="calorie-alert" class="alert" style="display: none;">
+                <strong>⚠️ Attenzione!</strong> Hai superato il target calorico di oggi.
+            </div>
+        </section>
+
+        <!-- Workout Plan Section -->
+        <section class="workout-section" style="margin-top: 30px;">
+            <!-- Workout Program Selector -->
+            <div style="margin-top: 10px; margin-bottom: 20px;">
+                <details style="cursor: pointer;">
+                    <summary style="padding: 12px; background: var(--bg-secondary); border-radius: 8px; font-weight: 600; color: var(--text-primary);">
+                        💪 Tutti i Programmi (16 disponibili) - Click per vedere
+                    </summary>
+                    <div style="margin-top: 12px;">
+                        <select id="program-selector" onchange="window.loadSelectedProgram()" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-size: 14px; cursor: pointer;">
+                    <option value="">-- Seleziona Programma --</option>
+                    <optgroup label="💪 MUSCLE GAIN">
+                        <option value="calisthenics">Calisthenics - Massa Corpo Libero</option>
+                        <option value="weights">Weights - Palestra Ipertrofia</option>
+                        <option value="hybrid">Hybrid - Mix Calisthenics + Weights</option>
+                    </optgroup>
+                    <optgroup label="🏆 PERFORMANCE">
+                        <option value="skills">Calisthenics Skills - Front Lever, Planche</option>
+                        <option value="strength">Strength - Forza Massimale</option>
+                        <option value="performance">Performance - Esplosività & Atletismo</option>
+                    </optgroup>
+                    <optgroup label="🔥 FAT LOSS & CARDIO">
+                        <option value="weight-loss">Weight Loss - Dimagrimento Classico</option>
+                        <option value="hiit">HIIT Fat Burn - Dimagrimento Veloce</option>
+                        <option value="cardio">Cardio Endurance - Running 5K-10K</option>
+                    </optgroup>
+                    <optgroup label="🎗️ EQUIPMENT SPECIFIC">
+                        <option value="bands">Resistance Bands - Elastici (Diana)</option>
+                        <option value="rings">Gymnastic Rings - Anelli</option>
+                    </optgroup>
+                    <optgroup label="⭐ SPECIALIZED">
+                        <option value="crossfit">CrossFit WODs - Fran, Cindy, Murph</option>
+                        <option value="core">Core Specialist - Addominali</option>
+                        <option value="street">Street Workout - Park Training</option>
+                        <option value="fullbody">Full Body 3-Day - Beginner</option>
+                        <option value="yoga">Yoga & Flexibility - Mobility</option>
+                        <option value="olympic">Olympic Lifting - Clean & Snatch</option>
+                    </optgroup>
+                </select>
+                    </div>
+                </details>
+            </div>
+            <div id="workout-plan-container">
+                <!-- Programma allenamento generato automaticamente -->
+            </div>
+        </section>
+
+        <!-- Diet Plan Section -->
+        <section class="diet-plan-section">
+            <div class="section-header">
+                <h2>🍽️ Piano Dieta</h2>
+                <button onclick="showDietModal()" class="btn-primary">📋 Scegli Dieta</button>
+            </div>
+            <div id="selected-diet-info" class="diet-info">
+                <p class="empty-state">Nessuna dieta selezionata. Scegli un piano alimentare!</p>
+            </div>
+        </section>
+
+        <!-- Meals Section -->
+        <section class="meals-section">
+            <div class="section-header">
+                <h2>🍽️ Pasti di Oggi</h2>
+                <button onclick="showAddMealModal()" class="btn-primary">➕ Aggiungi Pasto</button>
+            </div>
+
+            <div id="meals-list" class="meals-list">
+                <p class="empty-state">Nessun pasto registrato oggi</p>
+            </div>
+        </section>
+
+        <!-- Activity Section -->
+        <section class="activity-section">
+            <div class="section-header">
+                <h2>🏃 Attività Fisica di Oggi</h2>
+                <button onclick="showAddActivityModal()" class="btn-primary">➕ Aggiungi Attività</button>
+            </div>
+
+            <div id="activity-stats" class="activity-stats">
+                <div class="stat-card">
+                    <span class="stat-icon">👟</span>
+                    <span class="stat-label">Passi</span>
+                    <span id="today-steps" class="stat-value">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-icon">⏱️</span>
+                    <span class="stat-label">Durata</span>
+                    <span id="today-duration" class="stat-value">0 min</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-icon">🔥</span>
+                    <span class="stat-label">Calorie Bruciate</span>
+                    <span id="today-burned" class="stat-value">0 kcal</span>
+                </div>
+            </div>
+
+            <div id="activities-list" class="activities-list">
+                <p class="empty-state">Nessuna attività registrata oggi</p>
+            </div>
+        </section>
+
+        <!-- Weight History -->
+        <section class="history-section">
+            <h2>📊 Andamento Peso (Ultimi 7 giorni)</h2>
+            <div id="weight-chart" class="weight-chart">
+                <p class="empty-state">Nessun dato disponibile</p>
+            </div>
+        </section>
+
+        <!-- Interactive Charts Section -->
+        <section id="charts-section" class="charts-section" style="display: none;">
+            <h2>📊 Grafici Interattivi</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 24px;">Analizza i tuoi progressi con grafici dettagliati</p>
+
+            <div class="charts-grid">
+                <!-- Weight Progress Chart -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <h3>⚖️ Andamento Peso (30 giorni)</h3>
+                        <div class="chart-legend">
+                            <span class="legend-item"><span class="legend-dot" style="background: #4CAF50;"></span> Peso attuale</span>
+                            <span class="legend-item"><span class="legend-dot" style="background: #2196F3;"></span> Obiettivo</span>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="weightChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Calorie Deficit Chart -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <h3>🔥 Deficit Calorico (7 giorni)</h3>
+                        <div class="chart-legend">
+                            <span class="legend-item"><span class="legend-dot" style="background: #FF9800;"></span> Intake</span>
+                            <span class="legend-item"><span class="legend-dot" style="background: #4CAF50;"></span> Bruciate</span>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="caloriesChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- PR Progress Chart (for muscle-gain/performance users) -->
+                <div class="chart-card" id="pr-chart-card" style="display: none;">
+                    <div class="chart-card-header">
+                        <h3>💪 Progressione Personal Records</h3>
+                        <select id="pr-chart-selector" class="chart-selector">
+                            <option value="all">Tutti i PR</option>
+                        </select>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="prChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Activity Distribution Chart -->
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <h3>🏃 Distribuzione Attività</h3>
+                        <div class="chart-legend">
+                            <span class="legend-item">Ultimi 7 giorni</span>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="activityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Badges & Achievements Section -->
+        <section id="badges-section" class="badges-section" style="display: none;">
+            <h2>🏆 Traguardi & Obiettivi</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 24px;">Sblocca traguardi completando sfide e mantenendo costanza</p>
+
+            <div id="badges-grid" class="badges-grid">
+                <!-- Badges will be dynamically generated -->
+            </div>
+        </section>
+
+        <!-- Personal Records (Massimali) -->
+        <section id="pr-section" class="pr-section" style="display: none;">
+            <div class="section-header">
+                <h2>💪 Personal Records (Massimali)</h2>
+                <button onclick="showPRModal()" class="btn-primary">➕ Aggiungi PR</button>
+            </div>
+
+            <div id="pr-list" class="pr-grid">
+                <p class="empty-state">Nessun massimale registrato</p>
+            </div>
+        </section>
+
+        <!-- Progress Photos -->
+        <section id="photos-section" class="photos-section" style="display: none;">
+            <div class="section-header">
+                <h2>📸 Foto Progressi</h2>
+                <button onclick="showPhotoModal()" class="btn-primary">➕ Aggiungi Foto</button>
+            </div>
+
+            <div id="photos-grid" class="photos-grid">
+                <p class="empty-state">Nessuna foto caricata</p>
+            </div>
+        </section>
+
+        <!-- Advanced Sensors & Tracking -->
+        <section class="sensors-section">
+            <h2>🚀 Sensori & Tracking Avanzato</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 24px;">Funzionalità PRO per tracking completo</p>
+
+            <div class="sensors-grid">
+                <!-- GPS Tracking -->
+                <div class="sensor-card">
+                    <div class="sensor-icon">📍</div>
+                    <h3>GPS Tracking</h3>
+                    <p>Traccia corsa/camminata automatica con GPS</p>
+                    <button onclick="startGPSTracking()" class="btn-sensor">
+                        <span id="gps-status">▶️ Avvia Tracking</span>
+                    </button>
+                    <div id="gps-data" class="sensor-data" style="display: none;">
+                        <div>📏 Distanza: <strong id="gps-distance">0</strong> km</div>
+                        <div>⚡ Velocità: <strong id="gps-speed">0</strong> km/h</div>
+                        <div>⏱️ Tempo: <strong id="gps-time">00:00</strong></div>
+                    </div>
+                </div>
+
+                <!-- Heart Rate Monitor -->
+                <div class="sensor-card">
+                    <div class="sensor-icon">❤️</div>
+                    <h3>Frequenza Cardiaca</h3>
+                    <p>Connetti smartwatch/fitness band via Bluetooth</p>
+                    <button onclick="connectHeartRate()" class="btn-sensor">
+                        🔗 Connetti Dispositivo
+                    </button>
+                    <div id="hr-data" class="sensor-data" style="display: none;">
+                        <div style="font-size: 36px; font-weight: bold; color: #e74c3c;">
+                            <span id="hr-value">--</span> bpm
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Google Fit -->
+                <div class="sensor-card">
+                    <div class="sensor-icon">🔗</div>
+                    <h3>Google Fit Sync</h3>
+                    <p>Sincronizzazione automatica dati fitness</p>
+                    <button onclick="connectGoogleFitOAuth()" class="btn-sensor">
+                        🔗 Connetti Google Fit
+                    </button>
+                    <div id="gfit-status" class="sensor-data" style="display: none; color: #4CAF50;">
+                        ✅ Connesso - Sincronizzazione attiva
+                    </div>
+                </div>
+
+                <!-- CSV Import/Export -->
+                <div class="sensor-card">
+                    <div class="sensor-icon">📊</div>
+                    <h3>Import/Export Dati</h3>
+                    <p>Backup e import dati da altre app</p>
+                    <div style="display: flex; gap: 8px; margin-top: 12px;">
+                        <button onclick="exportDataCSV()" class="btn-sensor-small">
+                            📥 Esporta CSV
+                        </button>
+                        <button onclick="showImportModal()" class="btn-sensor-small">
+                            📤 Importa CSV
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Workout Timer Section -->
+        <section id="timer-section" class="timer-section">
+            <h2>⏱️ Timer Allenamento</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 24px;">Timer per serie, rest e circuiti</p>
+
+            <div class="timer-container">
+                <div class="timer-display">
+                    <div class="timer-icon">⏱️</div>
+                    <div class="timer-time" id="timer-display">00:00</div>
+                    <div class="timer-label" id="timer-label">Pronto</div>
+                </div>
+
+                <div class="timer-controls">
+                    <button onclick="startWorkTimer()" class="btn-timer btn-timer-start">▶️ Start</button>
+                    <button onclick="pauseTimer()" class="btn-timer btn-timer-pause">⏸️ Pausa</button>
+                    <button onclick="resetTimer()" class="btn-timer btn-timer-reset">🔄 Reset</button>
+                </div>
+
+                <div class="timer-presets">
+                    <h3>⚡ Preset Veloci</h3>
+                    <div class="preset-grid">
+                        <button onclick="setTimer(60, 'Rest 1 min')" class="preset-btn">Rest 1:00</button>
+                        <button onclick="setTimer(90, 'Rest 1:30')" class="preset-btn">Rest 1:30</button>
+                        <button onclick="setTimer(120, 'Rest 2 min')" class="preset-btn">Rest 2:00</button>
+                        <button onclick="setTimer(180, 'Rest 3 min')" class="preset-btn">Rest 3:00</button>
+                        <button onclick="setTimer(30, 'Plank 30s')" class="preset-btn">Plank 30s</button>
+                        <button onclick="setTimer(60, 'Plank 1 min')" class="preset-btn">Plank 1:00</button>
+                        <button onclick="setTimer(45, 'HIIT Work')" class="preset-btn">HIIT 45s</button>
+                        <button onclick="setTimer(15, 'HIIT Rest')" class="preset-btn">HIIT Rest 15s</button>
+                    </div>
+                </div>
+
+                <div class="timer-custom">
+                    <h3>🎯 Timer Personalizzato</h3>
+                    <div style="display: flex; gap: 16px; align-items: end; flex-wrap: wrap;">
+                        <div class="form-group" style="min-width: 140px; margin-bottom: 0;">
+                            <label style="font-weight: 600; margin-bottom: 8px; display: block;">Minuti</label>
+                            <input type="number" id="custom-minutes" min="0" max="60" value="0" style="width: 140px; height: 70px; padding: 20px; font-size: 32px; font-weight: bold; text-align: center; border: 3px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); color: var(--text-primary);">
+                        </div>
+                        <div class="form-group" style="min-width: 140px; margin-bottom: 0;">
+                            <label style="font-weight: 600; margin-bottom: 8px; display: block;">Secondi</label>
+                            <input type="number" id="custom-seconds" min="0" max="59" value="0" style="width: 140px; height: 70px; padding: 20px; font-size: 32px; font-weight: bold; text-align: center; border: 3px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); color: var(--text-primary);">
+                        </div>
+                        <button onclick="setCustomTimer()" class="btn-primary" style="white-space: nowrap; height: 70px; padding: 0 24px; font-size: 16px;">⏰ Imposta</button>
+                    </div>
+                </div>
+
+                <div class="timer-sound-toggle">
+                    <label>
+                        <input type="checkbox" id="timer-sound-enabled" checked>
+                        🔊 Suono alla fine
+                    </label>
+                </div>
+            </div>
+        </section>
+
+        <!-- Performance Dashboard -->
+        <section id="performance-section" class="performance-section" style="display: none;">
+            <h2>📊 Dashboard Performance</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 24px;">Traccia il tuo volume di allenamento e progressione</p>
+
+            <div class="performance-grid">
+                <div class="perf-card">
+                    <div class="perf-icon">💪</div>
+                    <div class="perf-value" id="total-volume">0 kg</div>
+                    <div class="perf-label">Volume Totale (7gg)</div>
+                </div>
+
+                <div class="perf-card">
+                    <div class="perf-icon">📈</div>
+                    <div class="perf-value" id="avg-intensity">0%</div>
+                    <div class="perf-label">Intensità Media</div>
+                </div>
+
+                <div class="perf-card">
+                    <div class="perf-icon">🔥</div>
+                    <div class="perf-value" id="workout-frequency">0/7</div>
+                    <div class="perf-label">Frequenza Settimanale</div>
+                </div>
+
+                <div class="perf-card">
+                    <div class="perf-icon">⚡</div>
+                    <div class="perf-value" id="progressive-overload">+0%</div>
+                    <div class="perf-label">Progressive Overload</div>
+                </div>
+            </div>
+
+            <div class="volume-chart-container">
+                <h3>📊 Volume Settimanale per Gruppo Muscolare</h3>
+                <canvas id="volumeChart"></canvas>
+            </div>
+        </section>
+
+        <!-- Body Measurements Tracker -->
+        <section id="measurements-section" class="measurements-section" style="display: none;">
+            <div class="section-header">
+                <h2>📏 Misure Corporee</h2>
+                <button onclick="showMeasurementsModal()" class="btn-primary">➕ Aggiungi Misure</button>
+            </div>
+
+            <div class="measurements-grid">
+                <div class="measurement-card">
+                    <div class="measurement-icon">💪</div>
+                    <div class="measurement-label">Bicipiti</div>
+                    <div class="measurement-value" id="biceps-value">-- cm</div>
+                    <div class="measurement-change" id="biceps-change"></div>
+                </div>
+
+                <div class="measurement-card">
+                    <div class="measurement-icon">🦵</div>
+                    <div class="measurement-label">Cosce</div>
+                    <div class="measurement-value" id="thighs-value">-- cm</div>
+                    <div class="measurement-change" id="thighs-change"></div>
+                </div>
+
+                <div class="measurement-card">
+                    <div class="measurement-icon">🫁</div>
+                    <div class="measurement-label">Petto</div>
+                    <div class="measurement-value" id="chest-value">-- cm</div>
+                    <div class="measurement-change" id="chest-change"></div>
+                </div>
+
+                <div class="measurement-card">
+                    <div class="measurement-icon">🔲</div>
+                    <div class="measurement-label">Vita</div>
+                    <div class="measurement-value" id="waist-value">-- cm</div>
+                    <div class="measurement-change" id="waist-change"></div>
+                </div>
+
+                <div class="measurement-card">
+                    <div class="measurement-icon">🦾</div>
+                    <div class="measurement-label">Avambracci</div>
+                    <div class="measurement-value" id="forearms-value">-- cm</div>
+                    <div class="measurement-change" id="forearms-change"></div>
+                </div>
+
+                <div class="measurement-card">
+                    <div class="measurement-icon">🍑</div>
+                    <div class="measurement-label">Glutei</div>
+                    <div class="measurement-value" id="glutes-value">-- cm</div>
+                    <div class="measurement-change" id="glutes-change"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Macro Tracking -->
+        <section id="macros-section" class="macros-section">
+            <h2>🥩 Tracking Macronutrienti</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 24px;">Monitora proteine, carboidrati e grassi</p>
+
+            <div class="macros-summary">
+                <div class="macro-ring-container">
+                    <canvas id="macrosChart" width="200" height="200"></canvas>
+                    <div class="macro-center-text">
+                        <div class="macro-center-value" id="total-kcal-macros">0</div>
+                        <div class="macro-center-label">kcal oggi</div>
+                    </div>
+                </div>
+
+                <div class="macro-breakdown">
+                    <div class="macro-item">
+                        <div class="macro-color" style="background: #4CAF50;"></div>
+                        <div class="macro-details">
+                            <div class="macro-name">Proteine</div>
+                            <div class="macro-amount" id="protein-amount">0g / 0g</div>
+                            <div class="macro-progress">
+                                <div class="macro-progress-bar" id="protein-progress" style="width: 0%; background: #4CAF50;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="macro-item">
+                        <div class="macro-color" style="background: #2196F3;"></div>
+                        <div class="macro-details">
+                            <div class="macro-name">Carboidrati</div>
+                            <div class="macro-amount" id="carbs-amount">0g / 0g</div>
+                            <div class="macro-progress">
+                                <div class="macro-progress-bar" id="carbs-progress" style="width: 0%; background: #2196F3;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="macro-item">
+                        <div class="macro-color" style="background: #FF9800;"></div>
+                        <div class="macro-details">
+                            <div class="macro-name">Grassi</div>
+                            <div class="macro-amount" id="fats-amount">0g / 0g</div>
+                            <div class="macro-progress">
+                                <div class="macro-progress-bar" id="fats-progress" style="width: 0%; background: #FF9800;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="showMacroModal()" class="btn-primary" style="margin-top: 24px;">➕ Aggiungi Pasto con Macro</button>
+        </section>
+
+        <!-- 1RM Calculator & Strength Metrics -->
+        <section id="strength-section" class="strength-section" style="display: none;">
+            <h2>🏋️ Calcolatore 1RM & Forza</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 24px;">Calcola il tuo massimale teorico</p>
+
+            <div class="rm-calculator">
+                <div class="rm-inputs">
+                    <div class="form-group">
+                        <label>Peso Sollevato (kg)</label>
+                        <input type="number" id="rm-weight" placeholder="100" min="1" step="0.5">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Ripetizioni Eseguite</label>
+                        <input type="number" id="rm-reps" placeholder="5" min="1" max="20">
+                    </div>
+
+                    <button onclick="calculate1RM()" class="btn-primary">🧮 Calcola 1RM</button>
+                </div>
+
+                <div class="rm-results" id="rm-results" style="display: none;">
+                    <h3>📊 Risultati</h3>
+                    <div class="rm-result-main">
+                        <div class="rm-label">1RM Stimato</div>
+                        <div class="rm-value" id="rm-1rm">-- kg</div>
+                    </div>
+
+                    <div class="rm-percentages">
+                        <div class="rm-perc-item">
+                            <span>95% (1-2 reps)</span>
+                            <strong id="rm-95">-- kg</strong>
+                        </div>
+                        <div class="rm-perc-item">
+                            <span>90% (3-4 reps)</span>
+                            <strong id="rm-90">-- kg</strong>
+                        </div>
+                        <div class="rm-perc-item">
+                            <span>85% (5-6 reps)</span>
+                            <strong id="rm-85">-- kg</strong>
+                        </div>
+                        <div class="rm-perc-item">
+                            <span>80% (7-8 reps)</span>
+                            <strong id="rm-80">-- kg</strong>
+                        </div>
+                        <div class="rm-perc-item">
+                            <span>75% (9-10 reps)</span>
+                            <strong id="rm-75">-- kg</strong>
+                        </div>
+                        <div class="rm-perc-item">
+                            <span>70% (11-12 reps)</span>
+                            <strong id="rm-70">-- kg</strong>
+                        </div>
+                    </div>
+
+                    <div class="strength-standards">
+                        <h4>💪 Standard di Forza (Maschio 80kg)</h4>
+                        <div class="standards-grid">
+                            <div class="standard-item">
+                                <div class="standard-label">Principiante</div>
+                                <div class="standard-range">Squat: 60kg | Panca: 50kg | Stacco: 80kg</div>
+                            </div>
+                            <div class="standard-item">
+                                <div class="standard-label">Intermedio</div>
+                                <div class="standard-range">Squat: 100kg | Panca: 80kg | Stacco: 120kg</div>
+                            </div>
+                            <div class="standard-item">
+                                <div class="standard-label">Avanzato</div>
+                                <div class="standard-range">Squat: 140kg | Panca: 110kg | Stacco: 170kg</div>
+                            </div>
+                            <div class="standard-item">
+                                <div class="standard-label">Elite</div>
+                                <div class="standard-range">Squat: 180kg | Panca: 140kg | Stacco: 220kg</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Zepp/Amazfit Integration -->
+        <section class="zepp-section">
+            <h2>⌚ Integrazione Zepp (Amazfit)</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 24px;">Sincronizza i tuoi orologi Amazfit</p>
+
+            <div class="zepp-card">
+                <div class="zepp-status" id="zepp-status">
+                    <div class="zepp-icon">⌚</div>
+                    <div>
+                        <div class="zepp-status-text">Non Connesso</div>
+                        <div class="zepp-status-detail">Collega il tuo orologio Amazfit per sincronizzare dati</div>
+                    </div>
+                </div>
+
+                <button onclick="connectZepp()" class="btn-primary" id="zepp-connect-btn">
+                    🔗 Connetti Zepp
+                </button>
+
+                <div class="zepp-features">
+                    <h4>📊 Dati Sincronizzati:</h4>
+                    <ul>
+                        <li>✅ Passi giornalieri</li>
+                        <li>✅ Frequenza cardiaca</li>
+                        <li>✅ Calorie bruciate</li>
+                        <li>✅ Qualità del sonno</li>
+                        <li>✅ Allenamenti registrati</li>
+                        <li>✅ SpO2 (saturazione ossigeno)</li>
+                    </ul>
+                </div>
+
+                <div class="zepp-manual-sync">
+                    <h4>📤 Sincronizzazione Manuale</h4>
+                    <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+                        Esporta i dati da Zepp App e caricali qui
+                    </p>
+                    <button onclick="showZeppImportModal()" class="btn-secondary">
+                        📂 Importa da Zepp Export
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Weekly Shopping List -->
+        <section class="shopping-section">
+            <h2>🛒 Lista Spesa Settimanale</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 24px;">Ingredienti per la tua dieta</p>
+
+            <div class="shopping-card">
+                <div class="shopping-header">
+                    <h3>📋 Cosa Comprare</h3>
+                    <button onclick="generateShoppingList()" class="btn-primary">🔄 Aggiorna Lista</button>
+                </div>
+
+                <div class="shopping-categories">
+                    <div class="shopping-category">
+                        <div class="category-header">🥚 Proteine</div>
+                        <ul id="shopping-proteins" class="shopping-list">
+                            <li>Pollo petto: 1.5kg</li>
+                            <li>Uova: 12 pz</li>
+                            <li>Tonno in scatola: 4 scatolette</li>
+                            <li>Ricotta: 500g</li>
+                        </ul>
+                    </div>
+
+                    <div class="shopping-category">
+                        <div class="category-header">🍚 Carboidrati</div>
+                        <ul id="shopping-carbs" class="shopping-list">
+                            <li>Riso integrale: 1kg</li>
+                            <li>Avena: 500g</li>
+                            <li>Pane integrale: 1 pacco</li>
+                            <li>Patate dolci: 1kg</li>
+                        </ul>
+                    </div>
+
+                    <div class="shopping-category">
+                        <div class="category-header">🥑 Grassi Sani</div>
+                        <ul id="shopping-fats" class="shopping-list">
+                            <li>Olio EVO: 1 bottiglia</li>
+                            <li>Avocado: 2-3 pz</li>
+                            <li>Noci/Mandorle: 200g</li>
+                            <li>Burro arachidi: 1 barattolo</li>
+                        </ul>
+                    </div>
+
+                    <div class="shopping-category">
+                        <div class="category-header">🥬 Verdure & Frutta</div>
+                        <ul id="shopping-veggies" class="shopping-list">
+                            <li>Broccoli: 500g</li>
+                            <li>Spinaci: 500g</li>
+                            <li>Pomodori: 1kg</li>
+                            <li>Banane: 6-8 pz</li>
+                            <li>Mele: 6 pz</li>
+                        </ul>
+                    </div>
+
+                    <div class="shopping-category">
+                        <div class="category-header">💊 Integratori</div>
+                        <ul id="shopping-supplements" class="shopping-list">
+                            <li>Proteine whey: 1kg</li>
+                            <li>Creatina: 200g</li>
+                            <li>Multivitaminico</li>
+                            <li>Omega 3</li>
+                        </ul>
+                    </div>
+
+                    <div class="shopping-category">
+                        <div class="category-header">🥛 Latticini & Altro</div>
+                        <ul id="shopping-misc" class="shopping-list">
+                            <li>Latte scremato: 2L</li>
+                            <li>Yogurt greco: 1kg</li>
+                            <li>Parmigiano: 200g</li>
+                            <li>Acqua minerale: 2 casse</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="shopping-actions">
+                    <button onclick="printShoppingList()" class="btn-secondary">🖨️ Stampa Lista</button>
+                    <button onclick="shareShoppingList()" class="btn-secondary">📤 Condividi</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Water Intake Tracker -->
+        <section id="water-section" class="water-section">
+            <h2>💧 Idratazione</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 24px;">Traccia il tuo consumo d'acqua giornaliero</p>
+
+            <div class="water-container">
+                <div class="water-visual">
+                    <div class="water-bottle">
+                        <div class="water-fill" id="water-fill" style="height: 0%;"></div>
+                        <div class="water-amount" id="water-amount">0 ml</div>
+                    </div>
+                </div>
+
+                <div class="water-target">
+                    <div class="water-target-label">Obiettivo Giornaliero</div>
+                    <div class="water-target-value" id="water-target">2500 ml</div>
+                    <input type="range" id="water-target-slider" min="1000" max="5000" step="100" value="2500"
+                           onchange="updateWaterTarget(this.value)" style="width: 100%; margin-top: 12px;">
+                </div>
+
+                <div class="water-quick-add">
+                    <button onclick="addWater(250)" class="water-btn">Bicchiere<br>250ml</button>
+                    <button onclick="addWater(500)" class="water-btn">Bottiglia<br>500ml</button>
+                    <button onclick="addWater(750)" class="water-btn">Borraccia<br>750ml</button>
+                    <button onclick="addWater(1000)" class="water-btn">Litro<br>1000ml</button>
+                </div>
+
+                <button onclick="resetWater()" class="btn-secondary" style="margin-top: 16px;">
+                    🔄 Reset Giornaliero
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal: Add Meal -->
+    <div id="modal-add-meal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>➕ Aggiungi Pasto</h2>
+                <button onclick="closeModal('modal-add-meal')" class="btn-close">✖</button>
+            </div>
+            <form id="form-add-meal">
+                <div class="form-group">
+                    <label>Tipo Pasto</label>
+                    <select id="meal-type" required>
+                        <option value="colazione">🥐 Colazione</option>
+                        <option value="pranzo">🍝 Pranzo</option>
+                        <option value="cena">🍖 Cena</option>
+                        <option value="spuntino">🍎 Spuntino</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Descrizione</label>
+                    <textarea id="meal-description" rows="3" placeholder="Es: Pasta al pomodoro, insalata..." required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Calorie (approssimative)</label>
+                    <input type="number" id="meal-calories" placeholder="Es: 500" min="0">
+                    <small>Opzionale - lascia vuoto se non sai</small>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">💾 Salva Pasto</button>
+                    <button type="button" onclick="closeModal('modal-add-meal')" class="btn-secondary">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Update Weight -->
+    <div id="modal-weight" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚖️ Aggiorna Peso</h2>
+                <button onclick="closeModal('modal-weight')" class="btn-close">✖</button>
+            </div>
+            <form id="form-update-weight">
+                <div class="form-group">
+                    <label>Peso (kg)</label>
+                    <input type="number" id="weight-input" step="0.1" placeholder="Es: 75.5" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Data</label>
+                    <input type="date" id="weight-date" required>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">💾 Salva Peso</button>
+                    <button type="button" onclick="closeModal('modal-weight')" class="btn-secondary">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Add Activity -->
+    <div id="modal-add-activity" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🏃 Aggiungi Attività Fisica</h2>
+                <button onclick="closeModal('modal-add-activity')" class="btn-close">✖</button>
+            </div>
+            <form id="form-add-activity">
+                <div class="form-group">
+                    <label>Tipo Attività</label>
+                    <select id="activity-type" required onchange="updateActivityCalorieEstimate()">
+                        <option value="">Seleziona...</option>
+                        <option value="camminata">🚶 Camminata</option>
+                        <option value="corsa">🏃 Corsa</option>
+                        <option value="treadmill">🏃 Treadmill</option>
+                        <option value="bicicletta">🚴 Bicicletta</option>
+                        <option value="nuoto">🏊 Nuoto</option>
+                        <option value="palestra">💪 Palestra/Pesi</option>
+                        <option value="yoga">🧘 Yoga/Stretching</option>
+                        <option value="altro">🏋️ Altro</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Durata (minuti)</label>
+                    <input type="number" id="activity-duration" placeholder="Es: 30" min="1" required onchange="updateActivityCalorieEstimate()">
+                </div>
+
+                <div class="form-group">
+                    <label>Passi (opzionale)</label>
+                    <input type="number" id="activity-steps" placeholder="Es: 5000" min="0">
+                    <small>Solo per attività come camminata/corsa</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Intensità</label>
+                    <select id="activity-intensity" required onchange="updateActivityCalorieEstimate()">
+                        <option value="bassa">🟢 Bassa (tranquilla)</option>
+                        <option value="media" selected>🟡 Media (moderata)</option>
+                        <option value="alta">🔴 Alta (intensa)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Calorie Bruciate (stimate)</label>
+                    <input type="number" id="activity-calories" placeholder="Calcolo automatico..." min="0" readonly>
+                    <small id="calorie-formula"></small>
+                </div>
+
+                <div class="form-group">
+                    <label>Note (opzionale)</label>
+                    <textarea id="activity-notes" rows="2" placeholder="Es: Allenamento al parco, ritmo sostenuto..."></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">💾 Salva Attività</button>
+                    <button type="button" onclick="closeModal('modal-add-activity')" class="btn-secondary">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Set Goal -->
+    <div id="modal-goal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🎯 Imposta Obiettivo</h2>
+                <button onclick="closeModal('modal-goal')" class="btn-close">✖</button>
+            </div>
+            <form id="form-set-goal">
+                <div class="form-group">
+                    <label>Tipo Obiettivo</label>
+                    <select id="goal-type" required onchange="toggleGoalType()">
+                        <option value="weight-loss">📉 Dimagrimento</option>
+                        <option value="muscle-gain">💪 Aumento Massa Muscolare</option>
+                        <option value="performance">🏆 Miglioramento Prestazioni</option>
+                        <option value="maintenance">⚖️ Mantenimento</option>
+                    </select>
+                </div>
+
+                <!-- WEIGHT LOSS FIELDS -->
+                <div id="weight-loss-fields">
+                    <div class="form-group">
+                        <label>Peso Target (kg)</label>
+                        <input type="number" id="goal-weight" step="0.1" placeholder="Es: 75.0">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Obiettivo Settimanale</label>
+                        <select id="goal-weekly">
+                            <option value="0.25">📉 Lento (-0.25 kg/settimana)</option>
+                            <option value="0.5" selected>📉 Moderato (-0.5 kg/settimana)</option>
+                            <option value="0.75">📉 Sostenuto (-0.75 kg/settimana)</option>
+                            <option value="1">📉 Intenso (-1 kg/settimana)</option>
+                        </select>
+                        <small>Consigliato: -0.5 kg/settimana per perdita sostenibile</small>
+                    </div>
+                </div>
+
+                <!-- MUSCLE GAIN FIELDS -->
+                <div id="muscle-gain-fields" style="display: none;">
+                    <div class="form-group">
+                        <label>Obiettivo Massa</label>
+                        <select id="goal-muscle" required>
+                            <option value="lean">💎 Massa Magra (Clean Bulk)</option>
+                            <option value="bulk">💪 Massa Rapida (Bulk)</option>
+                            <option value="recomp">⚡ Ricomposizione Corporea</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Focus Allenamento</label>
+                        <select id="goal-training-focus" required>
+                            <option value="calisthenics">🤸 Calisthenics</option>
+                            <option value="weights">🏋️ Palestra/Pesi</option>
+                            <option value="hybrid">⚡ Ibrido (Calisthenics + Pesi)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- PERFORMANCE FIELDS -->
+                <div id="performance-fields" style="display: none;">
+                    <div class="form-group">
+                        <label>Obiettivo Performance</label>
+                        <select id="goal-performance" required>
+                            <option value="strength">💪 Forza Massimale</option>
+                            <option value="endurance">🏃 Resistenza</option>
+                            <option value="power">⚡ Potenza/Esplosività</option>
+                            <option value="skills">🎯 Skills Calisthenics (Muscle-Up, Front Lever...)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Livello Attività Quotidiana</label>
+                    <select id="goal-activity-level" required>
+                        <option value="1.2">🛋️ Sedentario (poco/nessun esercizio)</option>
+                        <option value="1.375" selected>🚶 Leggero (esercizio 1-3 giorni/settimana)</option>
+                        <option value="1.55">🏃 Moderato (esercizio 3-5 giorni/settimana)</option>
+                        <option value="1.725">💪 Attivo (esercizio 6-7 giorni/settimana)</option>
+                        <option value="1.9">🏋️ Molto Attivo (esercizio intenso ogni giorno)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Età</label>
+                    <input type="number" id="goal-age" placeholder="Es: 35" min="18" max="100" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Sesso</label>
+                    <select id="goal-gender" required>
+                        <option value="M">👨 Maschio</option>
+                        <option value="F">👩 Femmina</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Altezza (cm)</label>
+                    <input type="number" id="goal-height" placeholder="Es: 175" min="100" max="250" required>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">💾 Salva Obiettivo</button>
+                    <button type="button" onclick="closeModal('modal-goal')" class="btn-secondary">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Choose Diet -->
+    <div id="modal-diet" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📋 Scegli Piano Dieta</h2>
+                <button onclick="closeModal('modal-diet')" class="btn-close">✖</button>
+            </div>
+            <div class="diet-options">
+                <div class="diet-card" onclick="selectDiet('mediterranea')">
+                    <h3>🥗 Dieta Mediterranea</h3>
+                    <p><strong>Bilanciata e sostenibile</strong></p>
+                    <ul>
+                        <li>Carboidrati: 50-55%</li>
+                        <li>Proteine: 15-20%</li>
+                        <li>Grassi: 25-30%</li>
+                    </ul>
+                    <p class="diet-description">
+                        Verdure, frutta, cereali integrali, pesce, olio d'oliva.
+                        Ideale per salute cardiovascolare.
+                    </p>
+                </div>
+
+                <div class="diet-card" onclick="selectDiet('lowcarb')">
+                    <h3>🥩 Low-Carb</h3>
+                    <p><strong>Riduzione carboidrati</strong></p>
+                    <ul>
+                        <li>Carboidrati: 20-30%</li>
+                        <li>Proteine: 30-35%</li>
+                        <li>Grassi: 40-45%</li>
+                    </ul>
+                    <p class="diet-description">
+                        Carne, pesce, uova, verdure, noci.
+                        Limita pane, pasta, zuccheri.
+                    </p>
+                </div>
+
+                <div class="diet-card" onclick="selectDiet('highprotein')">
+                    <h3>💪 High-Protein</h3>
+                    <p><strong>Alto contenuto proteico</strong></p>
+                    <ul>
+                        <li>Carboidrati: 30-35%</li>
+                        <li>Proteine: 35-40%</li>
+                        <li>Grassi: 25-30%</li>
+                    </ul>
+                    <p class="diet-description">
+                        Pollo, pesce, uova, legumi, latticini magri.
+                        Ideale per mantenere massa muscolare.
+                    </p>
+                </div>
+
+                <div class="diet-card" onclick="selectDiet('vegetariana')">
+                    <h3>🌱 Vegetariana</h3>
+                    <p><strong>Senza carne</strong></p>
+                    <ul>
+                        <li>Carboidrati: 50-55%</li>
+                        <li>Proteine: 15-20%</li>
+                        <li>Grassi: 25-30%</li>
+                    </ul>
+                    <p class="diet-description">
+                        Verdure, legumi, cereali, uova, latticini, noci.
+                        Ricca di fibre e antiossidanti.
+                    </p>
+                </div>
+
+                <div class="diet-card" onclick="selectDiet('intermittent')">
+                    <h3>⏰ Digiuno Intermittente 16/8</h3>
+                    <p><strong>Finestra alimentare 8 ore</strong></p>
+                    <ul>
+                        <li>Digiuno: 16 ore</li>
+                        <li>Alimentazione: 8 ore</li>
+                        <li>Es: 12:00-20:00</li>
+                    </ul>
+                    <p class="diet-description">
+                        Mangi solo in finestra 8 ore.
+                        Facilita controllo calorie.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add Personal Record -->
+    <div id="modal-pr" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>💪 Aggiungi Personal Record</h2>
+                <button onclick="closeModal('modal-pr')" class="btn-close">✖</button>
+            </div>
+            <form id="form-add-pr">
+                <div class="form-group">
+                    <label>Esercizio</label>
+                    <select id="pr-exercise" required>
+                        <option value="">Seleziona...</option>
+                        <optgroup label="🏋️ Powerlifting">
+                            <option value="squat">Squat</option>
+                            <option value="bench">Panca Piana</option>
+                            <option value="deadlift">Stacco da Terra</option>
+                        </optgroup>
+                        <optgroup label="💪 Palestra">
+                            <option value="overhead-press">Overhead Press</option>
+                            <option value="front-squat">Front Squat</option>
+                            <option value="romanian-deadlift">Romanian Deadlift</option>
+                        </optgroup>
+                        <optgroup label="🤸 Calisthenics">
+                            <option value="pull-ups">Pull-Ups (reps max)</option>
+                            <option value="dips">Dips (reps max)</option>
+                            <option value="muscle-ups">Muscle-Ups (reps)</option>
+                            <option value="handstand-pushup">Handstand Push-Ups</option>
+                            <option value="weighted-pullup">Pull-Up Zavorrato (1RM)</option>
+                            <option value="weighted-dip">Dip Zavorrato (1RM)</option>
+                        </optgroup>
+                        <optgroup label="🎯 Skills Hold">
+                            <option value="front-lever">Front Lever (tempo)</option>
+                            <option value="planche">Planche (tempo)</option>
+                            <option value="handstand">Handstand (tempo)</option>
+                            <option value="l-sit">L-Sit (tempo)</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Tipo Record</label>
+                    <select id="pr-type" required onchange="togglePRFields()">
+                        <option value="weight">🏋️ Peso (1RM)</option>
+                        <option value="reps">🔢 Ripetizioni Max</option>
+                        <option value="time">⏱️ Tempo Hold (secondi)</option>
+                    </select>
+                </div>
+
+                <div id="pr-weight-field" class="form-group">
+                    <label>Peso (kg)</label>
+                    <input type="number" id="pr-weight-value" step="0.5" placeholder="Es: 100">
+                </div>
+
+                <div id="pr-reps-field" class="form-group" style="display: none;">
+                    <label>Ripetizioni</label>
+                    <input type="number" id="pr-reps-value" placeholder="Es: 20">
+                </div>
+
+                <div id="pr-time-field" class="form-group" style="display: none;">
+                    <label>Tempo (secondi)</label>
+                    <input type="number" id="pr-time-value" placeholder="Es: 30">
+                </div>
+
+                <div class="form-group">
+                    <label>Data</label>
+                    <input type="date" id="pr-date" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Note (opzionale)</label>
+                    <textarea id="pr-notes" rows="2" placeholder="Es: Nuovo PR! Forma perfetta"></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">💾 Salva Record</button>
+                    <button type="button" onclick="closeModal('modal-pr')" class="btn-secondary">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Daily Steps -->
+    <div id="modal-daily-steps" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🏃 Attività Giornaliera Extra</h2>
+                <button onclick="closeModal('modal-daily-steps')" class="btn-close">✖</button>
+            </div>
+            <form id="form-daily-steps">
+                <div class="form-group">
+                    <label>👟 Passi Totali Oggi</label>
+                    <input type="number" id="daily-steps-input" placeholder="Es: 8500" min="0" required>
+                    <small>Controlla sul tuo telefono (app Salute/Google Fit)</small>
+                </div>
+
+                <div class="form-group">
+                    <label>📅 Data</label>
+                    <input type="date" id="daily-steps-date" required>
+                </div>
+
+                <div id="daily-steps-calc" style="background: #e3f2fd; padding: 16px; border-radius: 8px; margin: 16px 0;">
+                    <strong>Stima Calorie Bruciate:</strong>
+                    <p id="steps-calories-preview" style="font-size: 24px; color: #1976d2; margin: 8px 0;">-- kcal</p>
+                    <small style="color: #666;">Basato su: Passi × Peso corporeo × 0.04 kcal</small>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">💾 Salva Passi</button>
+                    <button type="button" onclick="closeModal('modal-daily-steps')" class="btn-secondary">Annulla</button>
+                </div>
+            </form>
+
+            <div style="margin-top: 24px; padding-top: 24px; border-top: 2px solid #e0e0e0;">
+                <h3 style="margin-bottom: 12px;">🔗 Sincronizzazione Automatica</h3>
+                <p style="color: #666; margin-bottom: 16px;">Collega Google Fit per importare passi automaticamente</p>
+                <button onclick="connectGoogleFit()" class="btn-secondary" style="width: 100%;">
+                    🔗 Connetti Google Fit
+                </button>
+                <small style="display: block; margin-top: 8px; color: #999;">Funziona su Android con Google Fit installato</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add Progress Photo -->
+    <div id="modal-photo" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📸 Aggiungi Foto Progresso</h2>
+                <button onclick="closeModal('modal-photo')" class="btn-close">✖</button>
+            </div>
+            <form id="form-add-photo">
+                <div class="form-group">
+                    <label>Carica Foto</label>
+                    <input type="file" id="photo-file" accept="image/*" required>
+                    <small>Formati: JPG, PNG. Max 5MB</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Tipo Foto</label>
+                    <select id="photo-type" required>
+                        <option value="front">📷 Frontale</option>
+                        <option value="side">📐 Laterale</option>
+                        <option value="back">🔙 Posteriore</option>
+                        <option value="other">📸 Altro</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Data</label>
+                    <input type="date" id="photo-date" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Note (opzionale)</label>
+                    <textarea id="photo-notes" rows="2" placeholder="Es: Dopo 1 mese allenamento"></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">💾 Salva Foto</button>
+                    <button type="button" onclick="closeModal('modal-photo')" class="btn-secondary">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Register Service Worker (PWA)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(reg => console.log('✅ Service Worker registrato'))
+                    .catch(err => console.error('❌ Service Worker errore:', err));
+            });
+        }
+    </script>
+
+    <!-- User Selection Modal -->
+    <div id="modal-user-select" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; backdrop-filter: blur(10px);">
+        <div style="max-width: 600px; margin: 80px auto; background: var(--bg-primary); border-radius: 20px; padding: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); animation: fadeIn 0.3s;">
+            <h2 style="text-align: center; margin: 0 0 30px 0; color: var(--text-primary); font-size: 28px;">👤 Seleziona Utente</h2>
+
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px;">
+                <!-- Gabriel -->
+                <div onclick="selectUser('Gabriel')" style="cursor: pointer; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; border-radius: 16px; text-align: center; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(102, 126, 234, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                    <div style="font-size: 48px; margin-bottom: 10px;">👨</div>
+                    <h3 style="margin: 0 0 8px 0; color: white; font-size: 20px;">Gabriel</h3>
+                    <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 13px;">Papà - Dimagrimento</p>
+                </div>
+
+                <!-- Cristina -->
+                <div onclick="selectUser('Cristina')" style="cursor: pointer; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 30px 20px; border-radius: 16px; text-align: center; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(240, 147, 251, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                    <div style="font-size: 48px; margin-bottom: 10px;">👩</div>
+                    <h3 style="margin: 0 0 8px 0; color: white; font-size: 20px;">Cristina</h3>
+                    <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 13px;">Mamma - Fitness</p>
+                </div>
+
+                <!-- Alex -->
+                <div onclick="selectUser('Alex')" style="cursor: pointer; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 30px 20px; border-radius: 16px; text-align: center; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(79, 172, 254, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                    <div style="font-size: 48px; margin-bottom: 10px;">💪</div>
+                    <h3 style="margin: 0 0 8px 0; color: white; font-size: 20px;">Alex</h3>
+                    <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 13px;">16 anni - Massa</p>
+                </div>
+
+                <!-- Diana -->
+                <div onclick="selectUser('Diana')" style="cursor: pointer; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); padding: 30px 20px; border-radius: 16px; text-align: center; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(250, 112, 154, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                    <div style="font-size: 48px; margin-bottom: 10px;">🏃</div>
+                    <h3 style="margin: 0 0 8px 0; color: white; font-size: 20px;">Diana</h3>
+                    <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 13px;">23 anni - Performance</p>
+                </div>
+            </div>
+
+            <p style="text-align: center; color: var(--text-muted); font-size: 13px; margin: 0;">Ogni utente ha dati separati e privati sul dispositivo</p>
+        </div>
+    </div>
+
+    <script>
+        // User Selection System
+        function selectUser(userName) {
+            localStorage.setItem('diet_user', userName);
+            localStorage.setItem('diet_logged_in', 'true');
+            document.getElementById('modal-user-select').style.display = 'none';
+
+            // Update user badge
+            updateUserBadge();
+
+            // Reload page to load user data
+            window.location.reload();
+        }
+
+        function updateUserBadge() {
+            const userName = localStorage.getItem('diet_user');
+            const badge = document.getElementById('current-user');
+
+            if (userName && badge) {
+                const userColors = {
+                    'Gabriel': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    'Cristina': 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                    'Alex': 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                    'Diana': 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
+                };
+
+                badge.textContent = userName;
+                badge.style.background = userColors[userName] || 'var(--success)';
+                badge.style.color = 'white';
+                badge.style.padding = '8px 16px';
+                badge.style.borderRadius = '20px';
+                badge.style.fontWeight = 'bold';
+                badge.style.fontSize = '14px';
+                badge.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+                badge.style.cursor = 'pointer';
+                badge.title = 'Click per cambiare utente';
+                badge.onclick = function() {
+                    if (confirm('🔄 Vuoi cambiare utente?\n\nI dati di ' + userName + ' rimarranno salvati.')) {
+                        document.getElementById('modal-user-select').style.display = 'block';
+                    }
+                };
+            }
+        }
+
+        // Check user on load
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentUser = localStorage.getItem('diet_user');
+            const isLoggedIn = localStorage.getItem('diet_logged_in') === 'true';
+
+            if (!isLoggedIn || !currentUser) {
+                // Show user selection modal
+                document.getElementById('modal-user-select').style.display = 'block';
+            } else {
+                // Update badge with current user
+                updateUserBadge();
+            }
+        });
+    </script>
+
+    <!-- Modal Change Program -->
+    <div id="modal-change-program" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10000; backdrop-filter: blur(10px); overflow-y: auto;">
+        <div style="max-width: 900px; margin: 40px auto; background: var(--bg-primary); border-radius: 20px; padding: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
+            <!-- Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                <h2 style="margin: 0; color: var(--text-primary); font-size: 26px;">💪 Scegli Programma</h2>
+                <button onclick="closeChangeProgramModal()" style="background: none; border: none; font-size: 32px; cursor: pointer; color: var(--text-primary); padding: 0; width: 40px; height: 40px;">×</button>
+            </div>
+
+            <!-- Dimagrimento Section -->
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: var(--text-primary); font-size: 18px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    🔥 Dimagrimento <span style="font-size: 13px; color: var(--text-muted); font-weight: normal;">(Gabriel & Cristina)</span>
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                    <div onclick="selectProgram('weight-loss')" class="program-card" style="cursor: pointer; background: linear-gradient(135deg, #f44336 0%, #e91e63 100%); padding: 20px; border-radius: 12px; text-align: center; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(244, 67, 54, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                        <div style="font-size: 40px; margin-bottom: 8px;">🔥</div>
+                        <h4 style="margin: 0 0 8px 0; color: white; font-size: 16px;">Weight Loss</h4>
+                        <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 12px;">Cardio + Forza</p>
+                    </div>
+
+                    <div onclick="selectProgram('hiit')" class="program-card" style="cursor: pointer; background: linear-gradient(135deg, #ff9800 0%, #ff5722 100%); padding: 20px; border-radius: 12px; text-align: center; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(255, 152, 0, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                        <div style="font-size: 40px; margin-bottom: 8px;">⚡</div>
+                        <h4 style="margin: 0 0 8px 0; color: white; font-size: 16px;">HIIT Fat Burn</h4>
+                        <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 12px;">30min intenso</p>
+                    </div>
+
+                    <div onclick="selectProgram('cardio')" class="program-card" style="cursor: pointer; background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%); padding: 20px; border-radius: 12px; text-align: center; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(76, 175, 80, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                        <div style="font-size: 40px; margin-bottom: 8px;">🏃</div>
+                        <h4 style="margin: 0 0 8px 0; color: white; font-size: 16px;">Cardio Endurance</h4>
+                        <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 12px;">Running 5K-10K</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Massa & Performance Section -->
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: var(--text-primary); font-size: 18px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    💪 Massa & Performance <span style="font-size: 13px; color: var(--text-muted); font-weight: normal;">(Alex & Diana)</span>
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                    <div onclick="selectProgram('calisthenics')" class="program-card" style="cursor: pointer; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; text-align: center; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(102, 126, 234, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                        <div style="font-size: 40px; margin-bottom: 8px;">💪</div>
+                        <h4 style="margin: 0 0 8px 0; color: white; font-size: 16px;">Calisthenics</h4>
+                        <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 12px;">Corpo libero</p>
+                    </div>
+
+                    <div onclick="selectProgram('weights')" class="program-card" style="cursor: pointer; background: linear-gradient(135deg, #3f51b5 0%, #5c6bc0 100%); padding: 20px; border-radius: 12px; text-align: center; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(63, 81, 181, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                        <div style="font-size: 40px; margin-bottom: 8px;">🏋️</div>
+                        <h4 style="margin: 0 0 8px 0; color: white; font-size: 16px;">Weights</h4>
+                        <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 12px;">Palestra</p>
+                    </div>
+
+                    <div onclick="selectProgram('bands')" class="program-card" style="cursor: pointer; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); padding: 20px; border-radius: 12px; text-align: center; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(250, 112, 154, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                        <div style="font-size: 40px; margin-bottom: 8px;">🎗️</div>
+                        <h4 style="margin: 0 0 8px 0; color: white; font-size: 16px;">Resistance Bands</h4>
+                        <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 12px;">Elastici (Diana)</p>
+                    </div>
+
+                    <div onclick="selectProgram('rings')" class="program-card" style="cursor: pointer; background: linear-gradient(135deg, #009688 0%, #4db6ac 100%); padding: 20px; border-radius: 12px; text-align: center; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(0, 150, 136, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                        <div style="font-size: 40px; margin-bottom: 8px;">⭕</div>
+                        <h4 style="margin: 0 0 8px 0; color: white; font-size: 16px;">Gymnastic Rings</h4>
+                        <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 12px;">Anelli</p>
+                    </div>
+
+                    <div onclick="selectProgram('performance')" class="program-card" style="cursor: pointer; background: linear-gradient(135deg, #2196f3 0%, #03a9f4 100%); padding: 20px; border-radius: 12px; text-align: center; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(33, 150, 243, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                        <div style="font-size: 40px; margin-bottom: 8px;">🏆</div>
+                        <h4 style="margin: 0 0 8px 0; color: white; font-size: 16px;">Performance</h4>
+                        <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 12px;">Esplosività</p>
+                    </div>
+
+                    <div onclick="selectProgram('street')" class="program-card" style="cursor: pointer; background: linear-gradient(135deg, #607d8b 0%, #78909c 100%); padding: 20px; border-radius: 12px; text-align: center; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(96, 125, 139, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                        <div style="font-size: 40px; margin-bottom: 8px;">🏙️</div>
+                        <h4 style="margin: 0 0 8px 0; color: white; font-size: 16px;">Street Workout</h4>
+                        <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 12px;">Park training</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Specialized Section -->
+            <div>
+                <h3 style="color: var(--text-primary); font-size: 18px; margin-bottom: 16px;">⭐ Specializzati</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                    <div onclick="selectProgram('crossfit')" class="program-card" style="cursor: pointer; background: linear-gradient(135deg, #ff6f00 0%, #ff8f00 100%); padding: 20px; border-radius: 12px; text-align: center; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(255, 111, 0, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                        <div style="font-size: 40px; margin-bottom: 8px;">🏋️‍♂️</div>
+                        <h4 style="margin: 0 0 8px 0; color: white; font-size: 16px;">CrossFit WODs</h4>
+                        <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 12px;">Fran, Cindy, Murph</p>
+                    </div>
+
+                    <div onclick="selectProgram('core')" class="program-card" style="cursor: pointer; background: linear-gradient(135deg, #d32f2f 0%, #f44336 100%); padding: 20px; border-radius: 12px; text-align: center; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(211, 47, 47, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                        <div style="font-size: 40px; margin-bottom: 8px;">💥</div>
+                        <h4 style="margin: 0 0 8px 0; color: white; font-size: 16px;">Core Specialist</h4>
+                        <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 12px;">Addominali</p>
+                    </div>
+
+                    <div onclick="selectProgram('yoga')" class="program-card" style="cursor: pointer; background: linear-gradient(135deg, #9c27b0 0%, #ba68c8 100%); padding: 20px; border-radius: 12px; text-align: center; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(156, 39, 176, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                        <div style="font-size: 40px; margin-bottom: 8px;">🧘</div>
+                        <h4 style="margin: 0 0 8px 0; color: white; font-size: 16px;">Yoga & Flexibility</h4>
+                        <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 12px;">Mobilità</p>
+                    </div>
+
+                    <div onclick="selectProgram('fullbody')" class="program-card" style="cursor: pointer; background: linear-gradient(135deg, #00bcd4 0%, #26c6da 100%); padding: 20px; border-radius: 12px; text-align: center; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(0, 188, 212, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                        <div style="font-size: 40px; margin-bottom: 8px;">🏃</div>
+                        <h4 style="margin: 0 0 8px 0; color: white; font-size: 16px;">Full Body 3-Day</h4>
+                        <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 12px;">Beginner friendly</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openChangeProgramModal() {
+            document.getElementById('modal-change-program').style.display = 'block';
+        }
+
+        function closeChangeProgramModal() {
+            document.getElementById('modal-change-program').style.display = 'none';
+        }
+
+        function selectProgram(programId) {
+            // Cambia programma
+            workoutTracking.currentProgram = programId;
+            workoutTracking.currentDayIndex = 0;
+            workoutTracking.startDate = getTodayString();
+
+            const recommended = getRecommendedPrograms(currentUser);
+            const newProgramInfo = recommended.find(p => p.id === programId);
+            workoutTracking.currentProgramName = newProgramInfo ? newProgramInfo.name : programId;
+
+            saveData();
+            displayTodaysWorkout();
+            closeChangeProgramModal();
+
+            // Scroll to workout
+            document.getElementById('workout-plan-container').scrollIntoView({behavior: 'smooth'});
+
+            alert('✅ Programma cambiato! Nuovo allenamento caricato! 💪');
+        }
+    </script>
+</body>
+</html>

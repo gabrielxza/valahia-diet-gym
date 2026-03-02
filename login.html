@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4CAF50">
+    <title>VALAHIA DIET GYM - Login</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1 class="app-title">VALAHIA DIET GYM</h1>
+                <p style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 600; font-size: 16px;">Il tuo Personal Trainer Digitale</p>
+            </div>
+
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">Utente</label>
+                    <select id="username" required>
+                        <option value="">Seleziona profilo...</option>
+                        <option value="gabriel">👨 Gabriel (Papà)</option>
+                        <option value="cristina">👩 Cristina (Mamma)</option>
+                        <option value="alex">💪 Alex (Figlio - 16 anni)</option>
+                        <option value="diana">🏃 Diana (Figlia - 23 anni)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Inserisci password" required>
+                </div>
+
+                <button type="submit" class="btn-primary">
+                    🔓 Accedi
+                </button>
+            </form>
+
+            <div class="login-footer">
+                <small>🔒 Dati salvati solo sul tuo dispositivo</small>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Login logic
+        const loginForm = document.getElementById('login-form');
+
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            // Password famiglia Valahia
+            const users = {
+                'gabriel': 'Valahia2026',
+                'cristina': 'Valahia2026',
+                'alex': 'Valahia2026',
+                'diana': 'Valahia2026'
+            };
+
+            if (users[username] && users[username] === password) {
+                // Login successful
+                localStorage.setItem('diet_user', username);
+                localStorage.setItem('diet_logged_in', 'true');
+                window.location.href = 'index.html';
+            } else {
+                alert('❌ Password errata!');
+            }
+        });
+
+        // Check if already logged in
+        if (localStorage.getItem('diet_logged_in') === 'true') {
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>

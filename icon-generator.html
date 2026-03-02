@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Generatore Icone VALAHIA GYM</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 40px;
+            background: #0f0f1e;
+            color: white;
+        }
+        canvas {
+            margin: 20px;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 Generatore Icone VALAHIA GYM</h1>
+    <p>Click sui pulsanti per scaricare le icone personalizzate!</p>
+
+    <div>
+        <canvas id="canvas192" width="192" height="192"></canvas>
+        <canvas id="canvas512" width="512" height="512"></canvas>
+    </div>
+
+    <button onclick="downloadIcon(192)">📥 Scarica icon-192.png</button>
+    <button onclick="downloadIcon(512)">📥 Scarica icon-512.png</button>
+
+    <script>
+        function drawIcon(size) {
+            const canvas = document.getElementById('canvas' + size);
+            const ctx = canvas.getContext('2d');
+
+            // Gradient background
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(1, '#764ba2');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+
+            // White circle background for letters
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, size/2.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw "VG" text
+            ctx.fillStyle = 'white';
+            ctx.font = `bold ${size/2.5}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('VG', size/2, size/2);
+
+            // Add small "PRO" badge
+            ctx.fillStyle = '#FFD700';
+            ctx.font = `bold ${size/8}px Arial`;
+            ctx.fillText('PRO', size/2, size/1.3);
+        }
+
+        // Draw both icons
+        drawIcon(192);
+        drawIcon(512);
+
+        function downloadIcon(size) {
+            const canvas = document.getElementById('canvas' + size);
+            const link = document.createElement('a');
+            link.download = 'icon-' + size + '.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            alert('✅ icon-' + size + '.png scaricata! Caricala su GitHub insieme agli altri file.');
+        }
+    </script>
+</body>
+</html>
