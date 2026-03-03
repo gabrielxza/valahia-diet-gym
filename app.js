@@ -4119,6 +4119,31 @@ window.connectGoogleFitOAuth = function() {
     window.location.href = oauthUrl;
 };
 
+// Rinnova il token silenziosamente (senza schermata di consenso se già autorizzato)
+function silentRefreshGoogleFit() {
+    const CLIENT_ID = '803319997631-6ts9tivtdldbsqsalvr7ujls34hvpu5t.apps.googleusercontent.com';
+    const SCOPES = encodeURIComponent(
+        'https://www.googleapis.com/auth/fitness.activity.read ' +
+        'https://www.googleapis.com/auth/fitness.body.read'
+    );
+    const REDIRECT_URI = encodeURIComponent('https://gabrielxza.github.io/valahia-diet-gym');
+    const loginHint = localStorage.getItem(`googleFit_email_${currentUser}`) || '';
+
+    localStorage.setItem('googleFit_connecting', currentUser);
+    localStorage.setItem('googleFit_silent', 'true');
+
+    // prompt=none → Google rinnova il token senza mostrare nessuna schermata
+    const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth` +
+        `?client_id=${CLIENT_ID}` +
+        `&redirect_uri=${REDIRECT_URI}` +
+        `&response_type=token` +
+        `&scope=${SCOPES}` +
+        `&prompt=none` +
+        (loginHint ? `&login_hint=${encodeURIComponent(loginHint)}` : '');
+
+    window.location.href = oauthUrl;
+}
+
 // Gestisce il callback OAuth dopo il redirect da Google
 async function handleGoogleFitCallback() {
     const hash = window.location.hash;
@@ -4139,6 +4164,9 @@ async function handleGoogleFitCallback() {
     // Pulisci l'URL (rimuovi hash)
     window.history.replaceState({}, document.title, window.location.pathname);
 
+    const isSilent = localStorage.getItem('googleFit_silent') === 'true';
+    localStorage.removeItem('googleFit_silent');
+
     // Load gapi client
     if (typeof gapi === 'undefined') {
         await loadGapiClient();
@@ -4148,9 +4176,16 @@ async function handleGoogleFitCallback() {
     });
     gapi.client.setToken({ access_token: accessToken });
 
-    alert('✅ Google Fit connesso!\n\nSincronizzazione automatica attivata.\nI passi verranno importati ogni volta che apri l\'app!');
-    if (document.getElementById('gfit-status')) {
-        document.getElementById('gfit-status').style.display = 'block';
+    if (!isSilent) {
+        // Salva email per i refresh futuri
+        try {
+            const payload = JSON.parse(atob(accessToken.split('.')[1]));
+            if (payload.email) localStorage.setItem(`googleFit_email_${connectingUser}`, payload.email);
+        } catch(e) {}
+        alert('✅ Google Fit connesso!\n\nSincronizzazione automatica attivata.\nI passi verranno importati ogni volta che apri l\'app!');
+        if (document.getElementById('gfit-status')) {
+            document.getElementById('gfit-status').style.display = 'block';
+        }
     }
 
     await syncGoogleFitData();
@@ -4317,9 +4352,10 @@ async function autoSyncGoogleFitOnStartup() {
         });
 
         if (!response.ok) {
-            // Token scaduto, richiedi nuovo collegamento
+            // Token scaduto — riautorizza silenziosamente (nessuna schermata se già autorizzato)
+            console.log('Token Google Fit scaduto, riautorizzo silenziosamente...');
             localStorage.removeItem(`googleFit_token_${currentUser}`);
-            console.log('Token Google Fit scaduto');
+            silentRefreshGoogleFit();
             return;
         }
 
