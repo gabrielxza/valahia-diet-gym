@@ -1,15 +1,15 @@
 // Incrementa questo numero ad ogni update dell'app!
-const CACHE_VERSION = 'v12';
+const CACHE_VERSION = 'v13';
 const CACHE_NAME = `valahia-gym-${CACHE_VERSION}`;
 
 const urlsToCache = [
-    '/',
-    '/index.html',
-    '/style.css',
-    '/app.js',
-    '/manifest.json',
-    '/icon-192.png',
-    '/icon-512.png'
+    '/valahia-diet-gym/',
+    '/valahia-diet-gym/index.html',
+    '/valahia-diet-gym/style.css',
+    '/valahia-diet-gym/app.js',
+    '/valahia-diet-gym/manifest.json',
+    '/valahia-diet-gym/icon-192.png',
+    '/valahia-diet-gym/icon-512.png'
 ];
 
 // Install Service Worker - Skip Waiting per update immediato

@@ -173,7 +173,7 @@ async function loadDataFromFirestore() {
         if (typeof activities !== 'undefined' && cloudData.activities) activities = cloudData.activities;
         if (typeof goal !== 'undefined' && cloudData.goal) goal = cloudData.goal;
 
-        lastSyncTime = cloudLastUpdated || new Date().toISOString();
+        lastSyncTime = cloudData.lastUpdated?.toDate().toISOString() || new Date().toISOString();
         localStorage.setItem(`last_firebase_sync_${currentUser}`, lastSyncTime);
 
         console.log('✅ Dati sincronizzati da cloud');
