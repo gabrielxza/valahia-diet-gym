@@ -4115,7 +4115,7 @@ window.connectGoogleFitOAuth = async function() {
 async function initGoogleFitAuth() {
     try {
         // Initialize with client ID (you need to create this in Google Cloud Console)
-        const CLIENT_ID = '803319997631-6ts9itvrdldbsqsalvr7ujls34hvpu5t.apps.googleusercontent.com';
+        const CLIENT_ID = '803319997631-6ts9iivtdidbsqsalvr7ujls34hvpu5t.apps.googleusercontent.com';
         const SCOPES = 'https://www.googleapis.com/auth/fitness.activity.read https://www.googleapis.com/auth/fitness.body.read';
 
         await gapi.client.init({
