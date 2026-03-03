@@ -4097,36 +4097,26 @@ function handleHRChange(event) {
 
 let googleAccessToken = null;
 
-window.connectGoogleFitOAuth = async function() {
-    try {
-        const CLIENT_ID = '803319997631-6ts9tivtdldbsqsalvr7ujls34hvpu5t.apps.googleusercontent.com';
-        const SCOPES = 'https://www.googleapis.com/auth/fitness.activity.read https://www.googleapis.com/auth/fitness.body.read';
-        const REDIRECT_URI = 'https://gabrielxza.github.io/valahia-diet-gym';
+window.connectGoogleFitOAuth = function() {
+    const CLIENT_ID = '803319997631-6ts9tivtdldbsqsalvr7ujls34hvpu5t.apps.googleusercontent.com';
+    const SCOPES = encodeURIComponent(
+        'https://www.googleapis.com/auth/fitness.activity.read ' +
+        'https://www.googleapis.com/auth/fitness.body.read'
+    );
+    const REDIRECT_URI = encodeURIComponent('https://gabrielxza.github.io/valahia-diet-gym');
 
-        // Load Google Identity Services library
-        if (typeof google === 'undefined' || !google.accounts) {
-            await loadGoogleIdentityServices();
-        }
+    // Salva utente corrente prima del redirect
+    localStorage.setItem('googleFit_connecting', currentUser);
 
-        // Salva stato prima del redirect
-        localStorage.setItem('googleFit_connecting', currentUser);
+    // Redirect diretto all'OAuth Google (implicit flow - nessun popup)
+    const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth` +
+        `?client_id=${CLIENT_ID}` +
+        `&redirect_uri=${REDIRECT_URI}` +
+        `&response_type=token` +
+        `&scope=${SCOPES}` +
+        `&prompt=consent`;
 
-        // Initialize token client with redirect mode (no popup - works on GitHub Pages)
-        const tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: CLIENT_ID,
-            scope: SCOPES,
-            ux_mode: 'redirect',
-            redirect_uri: REDIRECT_URI,
-            callback: () => {},
-        });
-
-        // Redirect to Google OAuth
-        tokenClient.requestAccessToken({ prompt: 'consent' });
-
-    } catch (error) {
-        console.error('Google Fit error:', error);
-        alert('❌ Errore Google Fit\n\n' + (error.message || 'Riprova o usa inserimento manuale.'));
-    }
+    window.location.href = oauthUrl;
 };
 
 // Gestisce il callback OAuth dopo il redirect da Google
