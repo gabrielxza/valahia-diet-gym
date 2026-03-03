@@ -4101,57 +4101,69 @@ window.connectGoogleFitOAuth = async function() {
     try {
         const CLIENT_ID = '803319997631-6ts9tivtdldbsqsalvr7ujls34hvpu5t.apps.googleusercontent.com';
         const SCOPES = 'https://www.googleapis.com/auth/fitness.activity.read https://www.googleapis.com/auth/fitness.body.read';
+        const REDIRECT_URI = 'https://gabrielxza.github.io/valahia-diet-gym';
 
         // Load Google Identity Services library
         if (typeof google === 'undefined' || !google.accounts) {
             await loadGoogleIdentityServices();
         }
 
-        // Load gapi client for Fitness API calls
-        if (typeof gapi === 'undefined') {
-            await loadGapiClient();
-        }
+        // Salva stato prima del redirect
+        localStorage.setItem('googleFit_connecting', currentUser);
 
-        // Initialize token client
+        // Initialize token client with redirect mode (no popup - works on GitHub Pages)
         const tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: CLIENT_ID,
             scope: SCOPES,
-            callback: async (response) => {
-                if (response.error) {
-                    console.error('OAuth error:', response);
-                    alert('❌ Errore connessione Google Fit\n\nRiprova o usa inserimento manuale passi.');
-                    return;
-                }
-
-                googleAccessToken = response.access_token;
-
-                // Salva token per auto-sync futuro
-                localStorage.setItem(`googleFit_token_${currentUser}`, googleAccessToken);
-
-                // Initialize gapi client
-                await gapi.client.init({
-                    discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/fitness/v1/rest']
-                });
-
-                gapi.client.setToken({ access_token: googleAccessToken });
-
-                alert('✅ Google Fit connesso!\n\nSincronizzazione automatica attivata.\nI passi verranno importati ogni volta che apri l\'app!');
-                if (document.getElementById('gfit-status')) {
-                    document.getElementById('gfit-status').style.display = 'block';
-                }
-
-                // Sync data
-                await syncGoogleFitData();
-            },
+            ux_mode: 'redirect',
+            redirect_uri: REDIRECT_URI,
+            callback: () => {},
         });
 
-        // Request token (opens OAuth popup)
+        // Redirect to Google OAuth
         tokenClient.requestAccessToken({ prompt: 'consent' });
 
     } catch (error) {
         console.error('Google Fit error:', error);
         alert('❌ Errore Google Fit\n\n' + (error.message || 'Riprova o usa inserimento manuale.'));
     }
+};
+
+// Gestisce il callback OAuth dopo il redirect da Google
+async function handleGoogleFitCallback() {
+    const hash = window.location.hash;
+    if (!hash || !hash.includes('access_token')) return;
+
+    const connectingUser = localStorage.getItem('googleFit_connecting');
+    if (!connectingUser) return;
+    localStorage.removeItem('googleFit_connecting');
+
+    // Leggi access token dall'URL hash
+    const params = new URLSearchParams(hash.substring(1));
+    const accessToken = params.get('access_token');
+    if (!accessToken) return;
+
+    googleAccessToken = accessToken;
+    localStorage.setItem(`googleFit_token_${connectingUser}`, accessToken);
+
+    // Pulisci l'URL (rimuovi hash)
+    window.history.replaceState({}, document.title, window.location.pathname);
+
+    // Load gapi client
+    if (typeof gapi === 'undefined') {
+        await loadGapiClient();
+    }
+    await gapi.client.init({
+        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/fitness/v1/rest']
+    });
+    gapi.client.setToken({ access_token: accessToken });
+
+    alert('✅ Google Fit connesso!\n\nSincronizzazione automatica attivata.\nI passi verranno importati ogni volta che apri l\'app!');
+    if (document.getElementById('gfit-status')) {
+        document.getElementById('gfit-status').style.display = 'block';
+    }
+
+    await syncGoogleFitData();
 };
 
 function loadGoogleIdentityServices() {
@@ -4635,6 +4647,9 @@ function init() {
     loadWaterIntake();
     updateMacros();
     updatePerformanceMetrics();
+
+    // Gestisci callback Google Fit OAuth (dopo redirect)
+    handleGoogleFitCallback();
 
     // Auto-sync Google Fit se già connesso
     autoSyncGoogleFitOnStartup();
