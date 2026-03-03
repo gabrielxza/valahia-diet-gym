@@ -1,68 +1,121 @@
-const CACHE_NAME = 'diet-tracker-v2';
+// Incrementa questo numero ad ogni update dell'app!
+const CACHE_VERSION = 'v10';
+const CACHE_NAME = `valahia-gym-${CACHE_VERSION}`;
+
 const urlsToCache = [
     '/',
     '/index.html',
     '/style.css',
     '/app.js',
-    '/manifest.json'
+    '/manifest.json',
+    '/icon-192.png',
+    '/icon-512.png'
 ];
 
-// Install Service Worker
+// Install Service Worker - Skip Waiting per update immediato
 self.addEventListener('install', (event) => {
+    console.log('🔄 Service Worker installing...', CACHE_NAME);
+
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
-                console.log('✅ Cache aperta');
+                console.log('✅ Cache aperta:', CACHE_NAME);
                 return cache.addAll(urlsToCache);
+            })
+            .then(() => {
+                // Force activate immediatamente senza aspettare
+                return self.skipWaiting();
             })
     );
 });
 
-// Fetch - Cache First Strategy
-self.addEventListener('fetch', (event) => {
-    event.respondWith(
-        caches.match(event.request)
-            .then((response) => {
-                // Cache hit - return cached response
-                if (response) {
-                    return response;
-                }
+// Activate - Clean old caches + Claim clients
+self.addEventListener('activate', (event) => {
+    console.log('⚡ Service Worker activating...', CACHE_NAME);
 
-                // Clone the request
-                const fetchRequest = event.request.clone();
-
-                return fetch(fetchRequest).then((response) => {
-                    // Check if valid response
-                    if (!response || response.status !== 200 || response.type !== 'basic') {
-                        return response;
-                    }
-
-                    // Clone the response
-                    const responseToCache = response.clone();
-
-                    caches.open(CACHE_NAME)
-                        .then((cache) => {
-                            cache.put(event.request, responseToCache);
+    event.waitUntil(
+        caches.keys()
+            .then((cacheNames) => {
+                return Promise.all(
+                    cacheNames.map((cacheName) => {
+                        if (cacheName !== CACHE_NAME) {
+                            console.log('🗑️ Elimino cache vecchia:', cacheName);
+                            return caches.delete(cacheName);
+                        }
+                    })
+                );
+            })
+            .then(() => {
+                // Prendi controllo di tutte le pagine immediatamente
+                return self.clients.claim();
+            })
+            .then(() => {
+                // Notifica tutte le pagine che c'è un update
+                return self.clients.matchAll().then(clients => {
+                    clients.forEach(client => {
+                        client.postMessage({
+                            type: 'SW_UPDATED',
+                            version: CACHE_VERSION
                         });
-
-                    return response;
+                    });
                 });
             })
     );
 });
 
-// Activate - Clean old caches
-self.addEventListener('activate', (event) => {
-    event.waitUntil(
-        caches.keys().then((cacheNames) => {
-            return Promise.all(
-                cacheNames.map((cacheName) => {
-                    if (cacheName !== CACHE_NAME) {
-                        console.log('🗑️ Elimino cache vecchia:', cacheName);
-                        return caches.delete(cacheName);
-                    }
+// Fetch - Network First per HTML/API, Cache First per assets
+self.addEventListener('fetch', (event) => {
+    const url = new URL(event.request.url);
+
+    // Skip external requests (Google APIs, etc.)
+    if (!url.origin.includes(self.location.origin) &&
+        !url.origin.includes('netlify.app')) {
+        return;
+    }
+
+    // Network First per HTML (sempre aggiornato)
+    if (event.request.destination === 'document' ||
+        url.pathname.endsWith('.html') ||
+        url.pathname === '/') {
+
+        event.respondWith(
+            fetch(event.request)
+                .then(response => {
+                    // Aggiorna cache con nuova versione
+                    const responseClone = response.clone();
+                    caches.open(CACHE_NAME).then(cache => {
+                        cache.put(event.request, responseClone);
+                    });
+                    return response;
                 })
-            );
-        })
+                .catch(() => {
+                    // Se offline, usa cache
+                    return caches.match(event.request);
+                })
+        );
+        return;
+    }
+
+    // Cache First per assets (CSS, JS, immagini)
+    event.respondWith(
+        caches.match(event.request)
+            .then(response => {
+                if (response) {
+                    return response;
+                }
+
+                return fetch(event.request).then(response => {
+                    if (!response || response.status !== 200 || response.type !== 'basic') {
+                        return response;
+                    }
+
+                    const responseToCache = response.clone();
+                    caches.open(CACHE_NAME).then(cache => {
+                        cache.put(event.request, responseToCache);
+                    });
+
+                    return response;
+                });
+            })
     );
 });

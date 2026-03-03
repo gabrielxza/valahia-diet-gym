@@ -31,6 +31,23 @@
         </div>
     </header>
 
+    <!-- Update Banner (nascosto di default) -->
+    <div id="update-banner" style="display: none; position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 9999; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 24px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); max-width: 90%; animation: slideDown 0.3s ease;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <span style="font-size: 24px;">🚀</span>
+            <div style="flex: 1;">
+                <div style="font-weight: bold; margin-bottom: 4px;">Nuova versione disponibile!</div>
+                <div style="font-size: 13px; opacity: 0.9;">Aggiorna per ottenere le ultime funzionalità</div>
+            </div>
+            <button onclick="reloadApp()" style="background: white; color: #667eea; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px;">
+                Aggiorna Ora
+            </button>
+            <button onclick="hideUpdateBanner()" style="background: transparent; border: none; color: white; font-size: 20px; cursor: pointer; padding: 4px 8px;">
+                ×
+            </button>
+        </div>
+    </div>
+
     <!-- Main Content -->
     <main class="app-main">
         <!-- Dashboard Cards -->
@@ -1603,6 +1620,46 @@
             document.getElementById('workout-plan-container').scrollIntoView({behavior: 'smooth'});
 
             alert('✅ Programma cambiato! Nuovo allenamento caricato! 💪');
+        }
+
+        // ========================================
+        // SERVICE WORKER AUTO-UPDATE
+        // ========================================
+
+        // Listen for service worker updates
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data && event.data.type === 'SW_UPDATED') {
+                    console.log('🚀 Nuova versione disponibile:', event.data.version);
+                    showUpdateBanner();
+                }
+            });
+
+            // Controlla manualmente ogni 10 minuti
+            setInterval(() => {
+                navigator.serviceWorker.getRegistration().then(reg => {
+                    if (reg) reg.update();
+                });
+            }, 600000); // 10 minuti
+        }
+
+        function showUpdateBanner() {
+            const banner = document.getElementById('update-banner');
+            if (banner) {
+                banner.style.display = 'block';
+            }
+        }
+
+        function hideUpdateBanner() {
+            const banner = document.getElementById('update-banner');
+            if (banner) {
+                banner.style.display = 'none';
+            }
+        }
+
+        function reloadApp() {
+            // Forza reload completo (bypassa cache)
+            window.location.reload(true);
         }
     </script>
 </body>
