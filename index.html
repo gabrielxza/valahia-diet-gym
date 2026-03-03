@@ -1409,7 +1409,20 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('service-worker.js')
-                    .then(reg => console.log('✅ Service Worker registrato'))
+                    .then(reg => {
+                        console.log('✅ Service Worker registrato');
+                        // Controlla aggiornamenti subito ad ogni apertura
+                        reg.update();
+                        // Rileva nuovo SW in installazione
+                        reg.addEventListener('updatefound', () => {
+                            const newWorker = reg.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'activated') {
+                                    showUpdateBanner();
+                                }
+                            });
+                        });
+                    })
                     .catch(err => console.error('❌ Service Worker errore:', err));
             });
         }
