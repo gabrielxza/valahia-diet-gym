@@ -1411,19 +1411,14 @@
                 navigator.serviceWorker.register('service-worker.js')
                     .then(reg => {
                         console.log('✅ Service Worker registrato');
-                        // Controlla aggiornamenti subito ad ogni apertura
                         reg.update();
-                        // Rileva nuovo SW in installazione
-                        reg.addEventListener('updatefound', () => {
-                            const newWorker = reg.installing;
-                            newWorker.addEventListener('statechange', () => {
-                                if (newWorker.state === 'activated') {
-                                    showUpdateBanner();
-                                }
-                            });
-                        });
                     })
                     .catch(err => console.error('❌ Service Worker errore:', err));
+
+                // Mostra banner quando nuovo SW prende il controllo (più affidabile su Android)
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    showUpdateBanner();
+                });
             });
         }
     </script>
