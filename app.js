@@ -4092,51 +4092,95 @@ function handleHRChange(event) {
 }
 
 // ===========================
-// GOOGLE FIT OAUTH COMPLETE
+// GOOGLE FIT OAUTH (NUOVO - Google Identity Services)
 // ===========================
 
+let googleAccessToken = null;
+
 window.connectGoogleFitOAuth = async function() {
-    // Check if already loaded
-    if (typeof gapi !== 'undefined' && gapi.client) {
-        await initGoogleFitAuth();
-        return;
-    }
-
-    // Load Google API
-    const script = document.createElement('script');
-    script.src = 'https://apis.google.com/js/api.js';
-    script.onload = async () => {
-        await new Promise(resolve => gapi.load('client:auth2', resolve));
-        await initGoogleFitAuth();
-    };
-    document.head.appendChild(script);
-};
-
-async function initGoogleFitAuth() {
     try {
-        // Initialize with client ID (you need to create this in Google Cloud Console)
         const CLIENT_ID = '803319997631-6ts9tivtdldbsqsalvr7ujls34hvpu5t.apps.googleusercontent.com';
         const SCOPES = 'https://www.googleapis.com/auth/fitness.activity.read https://www.googleapis.com/auth/fitness.body.read';
 
-        await gapi.client.init({
-            clientId: CLIENT_ID,
+        // Load Google Identity Services library
+        if (typeof google === 'undefined' || !google.accounts) {
+            await loadGoogleIdentityServices();
+        }
+
+        // Load gapi client for Fitness API calls
+        if (typeof gapi === 'undefined') {
+            await loadGapiClient();
+        }
+
+        // Initialize token client
+        const tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: CLIENT_ID,
             scope: SCOPES,
-            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/fitness/v1/rest']
+            callback: async (response) => {
+                if (response.error) {
+                    console.error('OAuth error:', response);
+                    alert('❌ Errore connessione Google Fit\n\nRiprova o usa inserimento manuale passi.');
+                    return;
+                }
+
+                googleAccessToken = response.access_token;
+
+                // Initialize gapi client
+                await gapi.client.init({
+                    discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/fitness/v1/rest']
+                });
+
+                gapi.client.setToken({ access_token: googleAccessToken });
+
+                alert('✅ Google Fit connesso!\n\nSincronizzazione attiva');
+                if (document.getElementById('gfit-status')) {
+                    document.getElementById('gfit-status').style.display = 'block';
+                }
+
+                // Sync data
+                await syncGoogleFitData();
+            },
         });
 
-        const authInstance = gapi.auth2.getAuthInstance();
-        await authInstance.signIn();
-
-        alert('✅ Google Fit connesso!\n\nSincronizzazione attiva');
-        document.getElementById('gfit-status').style.display = 'block';
-
-        // Sync data
-        await syncGoogleFitData();
+        // Request token (opens OAuth popup)
+        tokenClient.requestAccessToken({ prompt: 'consent' });
 
     } catch (error) {
         console.error('Google Fit error:', error);
-        alert('🔗 Setup Google Fit Richiesto\n\nPer attivare questa funzione:\n\n1. Crea progetto su Google Cloud Console\n2. Abilita Fitness API\n3. Crea OAuth credentials\n4. Configura Client ID\n\nVedi file GOOGLE_FIT_SETUP.md per istruzioni dettagliate.\n\nPer ora usa "Aggiungi Passi" manualmente.');
+        alert('❌ Errore Google Fit\n\n' + (error.message || 'Riprova o usa inserimento manuale.'));
     }
+};
+
+function loadGoogleIdentityServices() {
+    return new Promise((resolve, reject) => {
+        if (typeof google !== 'undefined' && google.accounts) {
+            resolve();
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+}
+
+function loadGapiClient() {
+    return new Promise((resolve, reject) => {
+        if (typeof gapi !== 'undefined') {
+            resolve();
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://apis.google.com/js/api.js';
+        script.onload = () => {
+            gapi.load('client', resolve);
+        };
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
 }
 
 async function syncGoogleFitData() {
