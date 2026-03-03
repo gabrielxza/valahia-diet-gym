@@ -59,6 +59,12 @@ window.signInWithFirebase = async function() {
 
         alert(`✅ Cloud Sync attivato!\n\n📧 Account: ${currentFirebaseUser.email}\n\n🔄 I tuoi dati saranno sincronizzati su tutti i dispositivi!`);
 
+        // Update UI
+        if (typeof window.updateCloudSyncUI === 'function') {
+            const lastSync = localStorage.getItem(`last_firebase_sync_${currentUser}`);
+            window.updateCloudSyncUI(true, currentFirebaseUser.email, lastSync);
+        }
+
         return true;
 
     } catch (error) {
@@ -257,6 +263,11 @@ window.syncToFirestore = async function() {
         localStorage.setItem(`last_firebase_sync_${currentUser}`, lastSyncTime);
 
         console.log('✅ Dati sincronizzati su cloud');
+
+        // Update UI with last sync time
+        if (typeof window.updateCloudSyncUI === 'function' && currentFirebaseUser) {
+            window.updateCloudSyncUI(true, currentFirebaseUser.email, lastSyncTime);
+        }
 
     } catch (error) {
         console.error('Errore sync Firestore:', error);

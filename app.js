@@ -4373,6 +4373,95 @@ async function autoSyncGoogleFitOnStartup() {
 }
 
 // ===========================
+// CLOUD SYNC UI FUNCTIONS
+// ===========================
+
+window.enableCloudSync = async function() {
+    try {
+        // Call Firebase sign-in (defined in firebase-sync.js)
+        if (typeof window.signInWithFirebase !== 'function') {
+            alert('❌ Errore: modulo Firebase non caricato\n\nRicarica la pagina e riprova.');
+            return;
+        }
+
+        const success = await window.signInWithFirebase();
+
+        if (success) {
+            updateCloudSyncUI(true);
+        }
+
+    } catch (error) {
+        console.error('Errore abilitazione Cloud Sync:', error);
+        alert('❌ Errore durante l\'attivazione Cloud Sync\n\n' + error.message);
+    }
+};
+
+window.disableCloudSync = async function() {
+    if (!confirm('⚠️ Disabilitare Cloud Sync?\n\nI dati rimarranno salvati localmente, ma non verranno più sincronizzati.')) {
+        return;
+    }
+
+    try {
+        // Call Firebase sign-out (defined in firebase-sync.js)
+        if (typeof window.signOutFromFirebase === 'function') {
+            await window.signOutFromFirebase();
+        }
+
+        updateCloudSyncUI(false);
+        alert('✅ Cloud Sync disabilitato');
+
+    } catch (error) {
+        console.error('Errore disabilitazione Cloud Sync:', error);
+        alert('❌ Errore durante la disabilitazione');
+    }
+};
+
+window.updateCloudSyncUI = function(enabled, userEmail = null, lastSync = null) {
+    const btn = document.getElementById('cloud-sync-btn');
+    const status = document.getElementById('cloud-sync-status');
+    const emailSpan = document.getElementById('cloud-user-email');
+    const lastSyncSpan = document.getElementById('cloud-last-sync');
+
+    if (!btn || !status) return;
+
+    if (enabled) {
+        btn.style.display = 'none';
+        status.style.display = 'block';
+
+        if (userEmail && emailSpan) {
+            emailSpan.textContent = userEmail;
+        }
+
+        if (lastSync && lastSyncSpan) {
+            lastSyncSpan.textContent = new Date(lastSync).toLocaleString('it-IT');
+        } else if (lastSyncSpan) {
+            lastSyncSpan.textContent = 'In corso...';
+        }
+    } else {
+        btn.style.display = 'block';
+        status.style.display = 'none';
+    }
+}
+
+// Check Cloud Sync status on load
+window.addEventListener('load', () => {
+    // Wait for Firebase to initialize
+    setTimeout(() => {
+        // firebase-sync.js exports currentFirebaseUser and syncEnabled
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+            firebase.auth().onAuthStateChanged((user) => {
+                if (user) {
+                    const lastSync = localStorage.getItem(`last_firebase_sync_${currentUser}`);
+                    updateCloudSyncUI(true, user.email, lastSync);
+                } else {
+                    updateCloudSyncUI(false);
+                }
+            });
+        }
+    }, 1000);
+});
+
+// ===========================
 // CSV IMPORT/EXPORT
 // ===========================
 
