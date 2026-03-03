@@ -6081,4 +6081,67 @@ window.saveNotificationSettings = function(event) {
     document.querySelector('.modal').remove();
 };
 
+// ===========================
+// CALORIE TARGET INFO
+// ===========================
+window.showCalorieTargetInfo = function() {
+    const goal = getGoal();
+
+    let message = '🎯 CALORIE TARGET - Cosa significa?\n\n';
+    message += '📊 È il tuo budget calorico GIORNALIERO\n';
+    message += '= Quante calorie devi MANGIARE oggi\n\n';
+
+    if (goal && goal.type) {
+        const calorieTarget = goal.calorieTarget || 0;
+        const tdee = Math.round(goal.bmr * goal.activityFactor);
+
+        if (goal.type === 'weight-loss') {
+            const deficit = tdee - calorieTarget;
+            message += '🔥 DIMAGRIMENTO:\n';
+            message += `• Il tuo metabolismo brucia ${tdee} kcal/giorno\n`;
+            message += `• Il tuo deficit è -${deficit} kcal/giorno\n`;
+            message += `• Mangiando ${calorieTarget} kcal/giorno perderai peso\n\n`;
+            message += '✅ Rispetta questo target per dimagrire!';
+        }
+        else if (goal.type === 'muscle-gain') {
+            const surplus = calorieTarget - tdee;
+            message += '💪 MASSA MUSCOLARE:\n';
+            message += `• Il tuo metabolismo brucia ${tdee} kcal/giorno\n`;
+            message += `• Il tuo surplus è +${surplus} kcal/giorno\n`;
+            message += `• Mangiando ${calorieTarget} kcal/giorno crescerai\n\n`;
+            message += '✅ Rispetta questo target per mettere massa!';
+        }
+        else if (goal.type === 'maintenance' || goal.type === 'performance') {
+            message += '⚖️ MANTENIMENTO:\n';
+            message += `• Il tuo metabolismo brucia ${tdee} kcal/giorno\n`;
+            message += `• Mangiando ${calorieTarget} kcal/giorno il peso rimane stabile\n\n`;
+            message += '✅ Rispetta questo target per mantenere il peso!';
+        }
+
+        message += '\n\n━━━━━━━━━━━━━━━━━━━\n';
+        message += 'NON È:\n';
+        message += '❌ Calorie da perdere alla settimana\n';
+        message += '❌ Calorie da bruciare con sport\n';
+        message += '❌ Solo deficit calorico\n\n';
+        message += 'È:\n';
+        message += '✅ Colazione + Pranzo + Cena + Spuntini\n';
+        message += '✅ Totale calorie da mangiare oggi\n';
+        message += '✅ Budget giornaliero completo';
+    } else {
+        message += '⚠️ Imposta prima un obiettivo!\n\n';
+        message += 'Vai su "Imposta Obiettivo" per calcolare\n';
+        message += 'il tuo target calorico personalizzato.\n\n';
+        message += '━━━━━━━━━━━━━━━━━━━\n';
+        message += 'COSA RAPPRESENTA:\n\n';
+        message += '🔥 DIMAGRIMENTO: Mangi MENO del metabolismo\n';
+        message += '   → Crei deficit → Perdi peso\n\n';
+        message += '💪 MASSA: Mangi PIÙ del metabolismo\n';
+        message += '   → Crei surplus → Cresci\n\n';
+        message += '⚖️ MANTENIMENTO: Mangi UGUALE al metabolismo\n';
+        message += '   → Peso stabile';
+    }
+
+    alert(message);
+};
+
 document.addEventListener('DOMContentLoaded', init);
