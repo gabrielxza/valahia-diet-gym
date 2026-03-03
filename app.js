@@ -4125,6 +4125,9 @@ window.connectGoogleFitOAuth = async function() {
 
                 googleAccessToken = response.access_token;
 
+                // Salva token per auto-sync futuro
+                localStorage.setItem(`googleFit_token_${currentUser}`, googleAccessToken);
+
                 // Initialize gapi client
                 await gapi.client.init({
                     discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/fitness/v1/rest']
@@ -4132,7 +4135,7 @@ window.connectGoogleFitOAuth = async function() {
 
                 gapi.client.setToken({ access_token: googleAccessToken });
 
-                alert('✅ Google Fit connesso!\n\nSincronizzazione attiva');
+                alert('✅ Google Fit connesso!\n\nSincronizzazione automatica attivata.\nI passi verranno importati ogni volta che apri l\'app!');
                 if (document.getElementById('gfit-status')) {
                     document.getElementById('gfit-status').style.display = 'block';
                 }
@@ -4184,30 +4187,189 @@ function loadGapiClient() {
 }
 
 async function syncGoogleFitData() {
-    // Fetch steps for today
-    const today = new Date();
-    const startOfDay = new Date(today.setHours(0, 0, 0, 0)).getTime();
-    const endOfDay = new Date(today.setHours(23, 59, 59, 999)).getTime();
-
-    const response = await gapi.client.fitness.users.dataset.aggregate({
-        userId: 'me',
-        requestBody: {
-            aggregateBy: [{ dataTypeName: 'com.google.step_count.delta' }],
-            startTimeMillis: startOfDay,
-            endTimeMillis: endOfDay
+    try {
+        if (!googleAccessToken) {
+            throw new Error('Token non disponibile. Riconnetti Google Fit.');
         }
-    });
 
-    const steps = response.result.bucket[0]?.dataset[0]?.point[0]?.value[0]?.intVal || 0;
+        // Fix timestamp calculation (create new Date objects to avoid mutation)
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
+        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime();
 
-    // Save to daily steps
-    const todayStr = getTodayString();
-    const weight = weights.length > 0 ? [...weights].sort((a, b) => new Date(b.date) - new Date(a.date))[0].weight : 70;
-    const calories = Math.round(steps * weight * 0.04);
+        console.log('Fetching Google Fit data from', new Date(startOfDay), 'to', new Date(endOfDay));
 
-    dailySteps[todayStr] = { steps, calories, weight, source: 'google_fit', timestamp: new Date().toISOString() };
-    saveData();
-    loadDailySteps();
+        // Use fetch() directly with access token (more reliable with GIS)
+        const response = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${googleAccessToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                aggregateBy: [{
+                    dataTypeName: 'com.google.step_count.delta',
+                    dataSourceId: 'derived:com.google.step_count.delta:com.google.android.gms:estimated_steps'
+                }],
+                bucketByTime: { durationMillis: endOfDay - startOfDay },
+                startTimeMillis: startOfDay,
+                endTimeMillis: endOfDay
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Fitness API error:', response.status, errorText);
+            throw new Error(`Errore API: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Google Fit response:', data);
+
+        // Extract steps from response
+        let steps = 0;
+        if (data.bucket && data.bucket.length > 0) {
+            const bucket = data.bucket[0];
+            if (bucket.dataset && bucket.dataset.length > 0) {
+                const dataset = bucket.dataset[0];
+                if (dataset.point && dataset.point.length > 0) {
+                    steps = dataset.point.reduce((total, point) => {
+                        return total + (point.value && point.value[0] ? point.value[0].intVal : 0);
+                    }, 0);
+                }
+            }
+        }
+
+        console.log('Steps found:', steps);
+
+        // Save to daily steps
+        const todayStr = getTodayString();
+        const currentWeight = weights.length > 0 ? [...weights].sort((a, b) => new Date(b.date) - new Date(a.date))[0].weight : 70;
+        const calories = Math.round(steps * currentWeight * 0.04);
+
+        dailySteps[todayStr] = {
+            steps,
+            calories,
+            weight: currentWeight,
+            source: 'google_fit',
+            timestamp: new Date().toISOString()
+        };
+
+        saveData();
+        if (typeof loadDailySteps === 'function') {
+            loadDailySteps();
+        }
+
+        alert(`✅ Sincronizzato Google Fit!\n\n👟 ${steps.toLocaleString()} passi\n🔥 ${calories} kcal`);
+
+    } catch (error) {
+        console.error('Errore sincronizzazione Google Fit:', error);
+        alert(`❌ Errore sincronizzazione\n\n${error.message}\n\nRiprova o usa inserimento manuale.`);
+    }
+}
+
+// Auto-sync Google Fit all'apertura dell'app (silenzioso)
+async function autoSyncGoogleFitOnStartup() {
+    try {
+        // Controlla se Google Fit è stato connesso in precedenza
+        const lastSync = localStorage.getItem(`googleFit_lastSync_${currentUser}`);
+        const savedToken = localStorage.getItem(`googleFit_token_${currentUser}`);
+
+        if (!savedToken) {
+            // Non ancora connesso, salta
+            return;
+        }
+
+        // Controlla se è già stato sincronizzato oggi
+        const today = getTodayString();
+        if (lastSync === today) {
+            console.log('Google Fit già sincronizzato oggi');
+            return;
+        }
+
+        // Token salvato, prova auto-sync silenzioso
+        googleAccessToken = savedToken;
+
+        console.log('Auto-sync Google Fit in corso...');
+
+        // Sincronizza senza mostrare alert
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
+        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime();
+
+        const response = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${googleAccessToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                aggregateBy: [{
+                    dataTypeName: 'com.google.step_count.delta',
+                    dataSourceId: 'derived:com.google.step_count.delta:com.google.android.gms:estimated_steps'
+                }],
+                bucketByTime: { durationMillis: endOfDay - startOfDay },
+                startTimeMillis: startOfDay,
+                endTimeMillis: endOfDay
+            })
+        });
+
+        if (!response.ok) {
+            // Token scaduto, richiedi nuovo collegamento
+            localStorage.removeItem(`googleFit_token_${currentUser}`);
+            console.log('Token Google Fit scaduto');
+            return;
+        }
+
+        const data = await response.json();
+
+        // Extract steps
+        let steps = 0;
+        if (data.bucket && data.bucket.length > 0) {
+            const bucket = data.bucket[0];
+            if (bucket.dataset && bucket.dataset.length > 0) {
+                const dataset = bucket.dataset[0];
+                if (dataset.point && dataset.point.length > 0) {
+                    steps = dataset.point.reduce((total, point) => {
+                        return total + (point.value && point.value[0] ? point.value[0].intVal : 0);
+                    }, 0);
+                }
+            }
+        }
+
+        // Save to daily steps
+        const todayStr = getTodayString();
+        const currentWeight = weights.length > 0 ? [...weights].sort((a, b) => new Date(b.date) - new Date(a.date))[0].weight : 70;
+        const calories = Math.round(steps * currentWeight * 0.04);
+
+        dailySteps[todayStr] = {
+            steps,
+            calories,
+            weight: currentWeight,
+            source: 'google_fit',
+            timestamp: new Date().toISOString()
+        };
+
+        saveData();
+        if (typeof loadDailySteps === 'function') {
+            loadDailySteps();
+        }
+
+        // Salva data ultima sincronizzazione
+        localStorage.setItem(`googleFit_lastSync_${currentUser}`, today);
+
+        console.log(`✅ Auto-sync completato: ${steps} passi`);
+
+        // Mostra notifica discreta (opzionale)
+        if (steps > 0 && document.getElementById('gfit-status')) {
+            document.getElementById('gfit-status').style.display = 'block';
+            document.getElementById('gfit-status').textContent = `✅ Sincronizzato: ${steps.toLocaleString()} passi`;
+        }
+
+    } catch (error) {
+        console.error('Auto-sync Google Fit fallito:', error);
+        // Fallisce silenziosamente, non disturba l'utente
+    }
 }
 
 // ===========================
@@ -4384,6 +4546,9 @@ function init() {
     loadWaterIntake();
     updateMacros();
     updatePerformanceMetrics();
+
+    // Auto-sync Google Fit se già connesso
+    autoSyncGoogleFitOnStartup();
 }
 
 // ========================================
