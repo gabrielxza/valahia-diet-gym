@@ -96,26 +96,18 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Cache First per assets (CSS, JS, immagini)
+    // Network First per JS/CSS (aggiornamenti immediati), fallback cache se offline
     event.respondWith(
-        caches.match(event.request)
+        fetch(event.request)
             .then(response => {
-                if (response) {
-                    return response;
-                }
-
-                return fetch(event.request).then(response => {
-                    if (!response || response.status !== 200 || response.type !== 'basic') {
-                        return response;
-                    }
-
-                    const responseToCache = response.clone();
+                if (response && response.status === 200) {
+                    const responseClone = response.clone();
                     caches.open(CACHE_NAME).then(cache => {
-                        cache.put(event.request, responseToCache);
+                        cache.put(event.request, responseClone);
                     });
-
-                    return response;
-                });
+                }
+                return response;
             })
+            .catch(() => caches.match(event.request))
     );
 });
