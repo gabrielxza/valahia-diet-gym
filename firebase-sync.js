@@ -101,10 +101,11 @@ async function migrateLocalDataToFirestore() {
     try {
         console.log('📤 Migrazione dati localStorage → Firestore...');
 
-        const userDoc = db.collection('users').doc(currentUser);
+        const userDoc = db.collection('users').doc(currentFirebaseUser.uid);
 
         // Prepara tutti i dati
         const dataToMigrate = {
+            localUsername: currentUser,
             meals: JSON.parse(localStorage.getItem(`meals_${currentUser}`) || '[]'),
             weights: JSON.parse(localStorage.getItem(`weights_${currentUser}`) || '[]'),
             activities: JSON.parse(localStorage.getItem(`activities_${currentUser}`) || '[]'),
@@ -145,7 +146,7 @@ async function loadDataFromFirestore() {
     try {
         console.log('📥 Caricamento dati da Firestore...');
 
-        const userDoc = await db.collection('users').doc(currentUser).get();
+        const userDoc = await db.collection('users').doc(currentFirebaseUser.uid).get();
 
         if (!userDoc.exists) {
             console.log('Nessun dato cloud trovato, uso dati locali');
@@ -204,7 +205,7 @@ function startRealtimeSync() {
     if (!syncEnabled || !currentFirebaseUser) return;
 
     // Listen for changes da altri dispositivi
-    unsubscribeSnapshot = db.collection('users').doc(currentUser)
+    unsubscribeSnapshot = db.collection('users').doc(currentFirebaseUser.uid)
         .onSnapshot((doc) => {
             if (doc.exists) {
                 const cloudData = doc.data();
@@ -243,9 +244,10 @@ window.syncToFirestore = async function() {
     }
 
     try {
-        const userDoc = db.collection('users').doc(currentUser);
+        const userDoc = db.collection('users').doc(currentFirebaseUser.uid);
 
         const dataToSync = {
+            localUsername: currentUser,
             meals: JSON.parse(localStorage.getItem(`meals_${currentUser}`) || '[]'),
             weights: JSON.parse(localStorage.getItem(`weights_${currentUser}`) || '[]'),
             activities: JSON.parse(localStorage.getItem(`activities_${currentUser}`) || '[]'),
