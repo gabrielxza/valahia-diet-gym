@@ -1407,6 +1407,16 @@
     <script>
         // Register Service Worker (PWA)
         if ('serviceWorker' in navigator) {
+            // Quando nuovo SW prende il controllo → ricarica automaticamente
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!refreshing) {
+                    refreshing = true;
+                    sessionStorage.setItem('app_updated', 'true');
+                    window.location.reload();
+                }
+            });
+
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('service-worker.js')
                     .then(reg => {
@@ -1414,11 +1424,6 @@
                         reg.update();
                     })
                     .catch(err => console.error('❌ Service Worker errore:', err));
-
-                // Mostra banner quando nuovo SW prende il controllo (più affidabile su Android)
-                navigator.serviceWorker.addEventListener('controllerchange', () => {
-                    showUpdateBanner();
-                });
             });
         }
     </script>
@@ -1687,6 +1692,14 @@
             if (banner) {
                 banner.style.display = 'block';
             }
+        }
+
+        // Mostra notifica aggiornamento dopo reload automatico
+        if (sessionStorage.getItem('app_updated')) {
+            sessionStorage.removeItem('app_updated');
+            window.addEventListener('DOMContentLoaded', () => {
+                setTimeout(() => showUpdateBanner(), 2000);
+            });
         }
 
         function hideUpdateBanner() {
