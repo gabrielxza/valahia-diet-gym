@@ -155,14 +155,7 @@ async function loadDataFromFirestore() {
 
         const cloudData = userDoc.data();
 
-        // Confronta timestamp per evitare sovrascritture
-        const localLastSync = localStorage.getItem(`last_firebase_sync_${currentUser}`);
-        const cloudLastUpdated = cloudData.lastUpdated?.toDate().toISOString();
-
-        if (localLastSync && cloudLastUpdated && localLastSync > cloudLastUpdated) {
-            console.log('Dati locali più recenti, skip sync');
-            return;
-        }
+        // Carica sempre i dati dal cloud (fonte di verità)
 
         // Aggiorna localStorage con dati cloud
         if (cloudData.meals) localStorage.setItem(`meals_${currentUser}`, JSON.stringify(cloudData.meals));
