@@ -3945,22 +3945,17 @@ window.updateCloudSyncUI = function(enabled, userEmail = null, lastSync = null) 
     }
 }
 
-// Check Cloud Sync status on load
+// Check Cloud Sync status on load (one-time check, no listener)
 window.addEventListener('load', () => {
-    // Wait for Firebase to initialize
     setTimeout(() => {
-        // firebase-sync.js exports currentFirebaseUser and syncEnabled
         if (typeof firebase !== 'undefined' && firebase.auth) {
-            firebase.auth().onAuthStateChanged((user) => {
-                if (user) {
-                    const lastSync = localStorage.getItem(`last_firebase_sync_${currentUser}`);
-                    updateCloudSyncUI(true, user.email, lastSync);
-                } else {
-                    updateCloudSyncUI(false);
-                }
-            });
+            const user = firebase.auth().currentUser;
+            if (user) {
+                const lastSync = localStorage.getItem(`last_firebase_sync_${currentUser}`);
+                updateCloudSyncUI(true, user.email, lastSync);
+            }
         }
-    }, 1000);
+    }, 1500);
 });
 
 // ===========================

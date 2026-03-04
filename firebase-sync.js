@@ -89,8 +89,8 @@ async function handleFirebaseSignIn(user) {
     alert(`✅ Cloud Sync attivato!\n\n📧 Account: ${user.email}\n\n🔄 I tuoi dati saranno sincronizzati su tutti i dispositivi!`);
 
     if (typeof window.updateCloudSyncUI === 'function') {
-        const lastSync = localStorage.getItem(`last_firebase_sync_${currentUser}`);
-        window.updateCloudSyncUI(true, user.email, lastSync);
+        // Use lastSyncTime directly — avoids race condition with localStorage read
+        window.updateCloudSyncUI(true, user.email, lastSyncTime);
     }
 }
 
