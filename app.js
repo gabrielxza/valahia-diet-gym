@@ -1000,10 +1000,23 @@ function generateWorkoutPlan() {
             { name: 'Shoulder Press', sets: '3 serie x 10 ripetizioni', rest: '60 sec', calories: 80 }
         ]
     };
-    const fullPlan = [...workoutPlan, martedi, giovedi]; // 7 days total
+    // Build 7-day plan in correct weekly order: Mon, Tue, Wed, Thu, Fri, Sat, Sun
+    const fullPlan = [
+        workoutPlan[0], // Lunedì
+        martedi,         // Martedì
+        workoutPlan[1], // Mercoledì
+        giovedi,         // Giovedì
+        workoutPlan[2], // Venerdì
+        workoutPlan[3], // Sabato
+        workoutPlan[4]  // Domenica
+    ];
 
     const daysCount = level <= 1.375 ? 3 : level <= 1.55 ? 5 : level <= 1.725 ? 6 : 7;
-    displayWorkoutPlan(fullPlan.slice(0, daysCount), exerciseCaloriesDaily);
+    // 3-day plan: Mon, Wed, Fri (non-consecutive for recovery)
+    const selectedDays = daysCount === 3
+        ? [fullPlan[0], fullPlan[2], fullPlan[4]]
+        : fullPlan.slice(0, daysCount);
+    displayWorkoutPlan(selectedDays, exerciseCaloriesDaily);
 }
 
 function displayWorkoutPlan(plan, dailyTarget) {

@@ -1372,13 +1372,12 @@
     <script>
         // Register Service Worker (PWA)
         if ('serviceWorker' in navigator) {
-            // Quando nuovo SW prende il controllo → ricarica automaticamente
+            // Quando nuovo SW prende il controllo → mostra banner (no auto-reload)
             let refreshing = false;
             navigator.serviceWorker.addEventListener('controllerchange', () => {
                 if (!refreshing) {
                     refreshing = true;
-                    sessionStorage.setItem('app_updated', 'true');
-                    window.location.reload();
+                    if (typeof showUpdateBanner === 'function') showUpdateBanner();
                 }
             });
 
