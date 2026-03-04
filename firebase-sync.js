@@ -98,6 +98,7 @@ async function handleFirebaseSignIn(user) {
 auth.onAuthStateChanged(async (user) => {
     if (user) {
         currentFirebaseUser = user;
+        if (syncEnabled) return; // handleFirebaseSignIn already running, skip duplicate
         const syncPref = localStorage.getItem(`firebase_sync_enabled_${currentUser}`);
 
         if (syncPref === 'true') {
@@ -237,6 +238,7 @@ let unsubscribeSnapshot = null;
 
 function startRealtimeSync() {
     if (!syncEnabled || !currentFirebaseUser) return;
+    if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; } // prevent duplicate listeners
 
     // Listen for changes da altri dispositivi
     unsubscribeSnapshot = db.collection('users').doc(currentFirebaseUser.uid)

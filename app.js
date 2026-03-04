@@ -3888,9 +3888,7 @@ window.enableCloudSync = async function() {
 
         const success = await window.signInWithFirebase();
 
-        if (success) {
-            updateCloudSyncUI(true);
-        }
+        // updateCloudSyncUI already called inside handleFirebaseSignIn with correct timestamp
 
     } catch (error) {
         console.error('Errore abilitazione Cloud Sync:', error);
