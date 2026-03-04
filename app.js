@@ -3087,7 +3087,7 @@ function getWeekStart() {
 }
 
 function loadTodaysPlan() {
-    if (!goal || !selectedDiet) {
+    if (!goal) {
         document.getElementById('today-plan-section').style.display = 'none';
         return;
     }
@@ -3099,15 +3099,18 @@ function loadTodaysPlan() {
 
     // Check if today's plan already exists
     if (!dailyTracking[today]) {
-        // Generate new plan for today
         dailyTracking[today] = {
-            meals: generateTodayMeals(),
+            meals: selectedDiet ? generateTodayMeals() : null,
             workout: generateTodayWorkout(),
             mealsConfirmed: false,
             workoutConfirmed: false,
             actualMeals: [],
             actualWorkout: null
         };
+        saveData();
+    } else if (dailyTracking[today].workout === undefined) {
+        // Regenerate workout if missing
+        dailyTracking[today].workout = generateTodayWorkout();
         saveData();
     }
 
@@ -3232,8 +3235,8 @@ function generateTodayWorkout() {
 }
 
 function displayTodaysPlan(plan) {
-    // Display meals
-    if (plan.meals) {
+    // Display meals (only if diet is selected)
+    if (plan.meals && selectedDiet) {
         const mealsContent = document.getElementById('today-meals-content');
         let html = '';
 
