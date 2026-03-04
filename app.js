@@ -3122,6 +3122,17 @@ function loadTodaysPlan() {
     if (!section) return;
     section.style.display = 'block';
 
+    // Guard: if anything hides this section, immediately re-show it
+    if (!section._visibilityGuard) {
+        section._visibilityGuard = new MutationObserver(function() {
+            if (section.style.display === 'none') {
+                console.warn('[today-plan-section] was hidden by unknown code — re-showing');
+                section.style.display = 'block';
+            }
+        });
+        section._visibilityGuard.observe(section, { attributes: true, attributeFilter: ['style'] });
+    }
+
     if (!goal) {
         section.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-muted);">⚙️ Imposta il tuo obiettivo per vedere il piano di oggi.</div>';
         return;
