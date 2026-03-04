@@ -733,11 +733,28 @@ document.getElementById('form-set-goal').addEventListener('submit', (e) => {
         alert(`✅ Obiettivo Mantenimento impostato!\n\n⚖️ Calorie giornaliere: ${tdee} kcal`);
     }
 
+    // Regenerate today's workout plan with new activity level
+    const today = getTodayString();
+    if (dailyTracking[today]) {
+        dailyTracking[today].workout = generateTodayWorkout();
+        dailyTracking[today].workoutConfirmed = false;
+    } else {
+        dailyTracking[today] = {
+            meals: generateTodayMeals(),
+            workout: generateTodayWorkout(),
+            mealsConfirmed: false,
+            workoutConfirmed: false,
+            actualMeals: [],
+            actualWorkout: null
+        };
+    }
+
     saveData();
     closeModal('modal-goal');
 
     loadGoalStatus();
     updateGoalProgress();
+    loadTodaysPlan();
 });
 
 function loadGoalStatus() {
@@ -3114,21 +3131,50 @@ function generateTodayMeals() {
 }
 
 function generateTodayWorkout() {
-    const dayOfWeek = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const dayOfWeek = new Date().getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
 
-    // Map to weekly plan (skip weekends if Tuesday/Thursday are rest days)
-    const workoutDays = [
-        null, // Sunday - from workout plan day 5 (Domenica)
-        { day: 'Lunedì', index: 0 }, // Monday
-        null, // Tuesday - Rest
-        { day: 'Mercoledì', index: 1 }, // Wednesday
-        null, // Thursday - Rest
-        { day: 'Venerdì', index: 2 }, // Friday
-        { day: 'Sabato', index: 3 } // Saturday
-    ];
+    if (!goal) return { rest: true, day: getDayOfWeek() };
 
-    if (!goal || !workoutDays[dayOfWeek]) {
+    // Build workout schedule based on activityLevel
+    // 1.2 = sedentary, 1.375 = 1-3d, 1.55 = 3-5d, 1.725 = 6-7d, 1.9 = every day
+    const level = goal.activityLevel || 1.375;
+    let activeDays; // array of JS getDay() values with workouts
+    if (level <= 1.2) {
+        activeDays = []; // no workouts
+    } else if (level <= 1.375) {
+        activeDays = [1, 3, 5]; // Mon, Wed, Fri
+    } else if (level <= 1.55) {
+        activeDays = [1, 2, 4, 5, 6]; // Mon, Tue, Thu, Fri, Sat
+    } else if (level <= 1.725) {
+        activeDays = [1, 2, 3, 4, 5, 6]; // Mon-Sat
+    } else {
+        activeDays = [0, 1, 2, 3, 4, 5, 6]; // every day
+    }
+
+    // Map active day → workout plan index (0-based within active days)
+    const workoutDayNames = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+    const daySlot = activeDays.indexOf(dayOfWeek);
+
+    if (daySlot === -1) {
         return { rest: true, day: getDayOfWeek() };
+    }
+
+    // Rotate through workoutPlans using the slot index
+    const planIndex = daySlot % 4;
+    const workoutDays = [ // keep original structure for plan lookup
+        null,
+        { day: 'Lunedì', index: 0 },
+        null,
+        { day: 'Mercoledì', index: 1 },
+        null,
+        { day: 'Venerdì', index: 2 },
+        { day: 'Sabato', index: 3 }
+    ];
+    const dayLabel = workoutDayNames[dayOfWeek];
+
+    if (!workoutDays[dayOfWeek]) {
+        // Day not in original map — use planIndex
+        workoutDays[dayOfWeek] = { day: dayLabel, index: planIndex };
     }
 
     // Get workout from the weekly plan generated earlier
