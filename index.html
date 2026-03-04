@@ -404,46 +404,19 @@
             <p style="color: var(--text-secondary); margin-bottom: 24px;">Funzionalità PRO per tracking completo</p>
 
             <div class="sensors-grid">
-                <!-- GPS Tracking -->
-                <div class="sensor-card">
-                    <div class="sensor-icon">📍</div>
-                    <h3>GPS Tracking</h3>
-                    <p>Traccia corsa/camminata automatica con GPS</p>
-                    <button onclick="startGPSTracking()" class="btn-sensor">
-                        <span id="gps-status">▶️ Avvia Tracking</span>
+                <!-- Health Connect -->
+                <div class="sensor-card" id="health-connect-card">
+                    <div class="sensor-icon">🏃</div>
+                    <h3>Contatore Passi</h3>
+                    <p>Legge i passi direttamente dal sensore hardware del telefono</p>
+                    <button onclick="setupHealthConnect()" class="btn-sensor" id="hc-btn">
+                        🔗 Attiva Contatore Passi
                     </button>
-                    <div id="gps-data" class="sensor-data" style="display: none;">
-                        <div>📏 Distanza: <strong id="gps-distance">0</strong> km</div>
-                        <div>⚡ Velocità: <strong id="gps-speed">0</strong> km/h</div>
-                        <div>⏱️ Tempo: <strong id="gps-time">00:00</strong></div>
-                    </div>
-                </div>
-
-                <!-- Heart Rate Monitor -->
-                <div class="sensor-card">
-                    <div class="sensor-icon">❤️</div>
-                    <h3>Frequenza Cardiaca</h3>
-                    <p>Connetti smartwatch/fitness band via Bluetooth</p>
-                    <button onclick="connectHeartRate()" class="btn-sensor">
-                        🔗 Connetti Dispositivo
-                    </button>
-                    <div id="hr-data" class="sensor-data" style="display: none;">
-                        <div style="font-size: 36px; font-weight: bold; color: #e74c3c;">
-                            <span id="hr-value">--</span> bpm
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Google Fit -->
-                <div class="sensor-card">
-                    <div class="sensor-icon">🔗</div>
-                    <h3>Google Fit Sync</h3>
-                    <p>Sincronizzazione automatica dati fitness</p>
-                    <button onclick="connectGoogleFitOAuth()" class="btn-sensor">
-                        🔗 Connetti Google Fit
-                    </button>
-                    <div id="gfit-status" class="sensor-data" style="display: none; color: #4CAF50;">
-                        ✅ Connesso - Sincronizzazione attiva
+                    <div id="hc-status" class="sensor-data" style="display: none;">
+                        <div style="color: #4CAF50;">✅ Connesso</div>
+                        <button onclick="syncHealthConnectSteps()" class="btn-sensor-small" style="margin-top: 8px;">
+                            🔄 Sincronizza ora
+                        </button>
                     </div>
                 </div>
 
@@ -1346,14 +1319,6 @@
                 </div>
             </form>
 
-            <div style="margin-top: 24px; padding-top: 24px; border-top: 2px solid #e0e0e0;">
-                <h3 style="margin-bottom: 12px;">🔗 Sincronizzazione Automatica</h3>
-                <p style="color: #666; margin-bottom: 16px;">Collega Google Fit per importare passi automaticamente</p>
-                <button onclick="connectGoogleFit()" class="btn-secondary" style="width: 100%;">
-                    🔗 Connetti Google Fit
-                </button>
-                <small style="display: block; margin-top: 8px; color: #999;">Funziona su Android con Google Fit installato</small>
-            </div>
         </div>
     </div>
 

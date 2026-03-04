@@ -3,12 +3,12 @@
 // ========================================
 
 const firebaseConfig = {
-    apiKey: "AIzaSyCW4ynPDZE2pNu8afpl87ZFfA83Wo9VOWo",
-    authDomain: "valahia-diet-gym-ab277.firebaseapp.com",
-    projectId: "valahia-diet-gym-ab277",
-    storageBucket: "valahia-diet-gym-ab277.firebasestorage.app",
-    messagingSenderId: "997858897314",
-    appId: "1:997858897314:web:fd8eed00c1796c30d96fb"
+    apiKey: "AIzaSyDpC11Jcc7ea2DviinVJMazlL5W0HNqRxg",
+    authDomain: "valahia-diet-gym-11747.firebaseapp.com",
+    projectId: "valahia-diet-gym-11747",
+    storageBucket: "valahia-diet-gym-11747.firebasestorage.app",
+    messagingSenderId: "939145249574",
+    appId: "1:939145249574:web:04754dea4607b0066937e7"
 };
 
 // Initialize Firebase
@@ -35,44 +35,64 @@ let lastSyncTime = null;
 // AUTHENTICATION
 // ========================================
 
-// Sign in with Google (riusa OAuth già configurato)
+// Detect if running as native Android app
+function isNativeApp() {
+    return !!(window.Capacitor && window.Capacitor.isNativePlatform());
+}
+
+// Sign in with Google
 window.signInWithFirebase = async function() {
     try {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        provider.addScope('https://www.googleapis.com/auth/fitness.activity.read');
-        provider.addScope('https://www.googleapis.com/auth/fitness.body.read');
-
-        const result = await auth.signInWithPopup(provider);
-        currentFirebaseUser = result.user;
-
-        console.log('✅ Firebase signed in:', currentFirebaseUser.email);
-
-        // Salva preferenza sync
-        localStorage.setItem(`firebase_sync_enabled_${currentUser}`, 'true');
-        syncEnabled = true;
-
-        // Migra dati localStorage → Firestore (prima volta)
-        await migrateLocalDataToFirestore();
-
-        // Avvia sync automatico
-        startRealtimeSync();
-
-        alert(`✅ Cloud Sync attivato!\n\n📧 Account: ${currentFirebaseUser.email}\n\n🔄 I tuoi dati saranno sincronizzati su tutti i dispositivi!`);
-
-        // Update UI
-        if (typeof window.updateCloudSyncUI === 'function') {
-            const lastSync = localStorage.getItem(`last_firebase_sync_${currentUser}`);
-            window.updateCloudSyncUI(true, currentFirebaseUser.email, lastSync);
+        if (isNativeApp()) {
+            // Native app: use @capacitor-firebase/authentication plugin
+            // This opens native Google Sign-In dialog (no WebView redirect)
+            const FirebaseAuthentication = window.Capacitor.Plugins.FirebaseAuthentication;
+            if (!FirebaseAuthentication) {
+                alert('❌ Firebase Authentication plugin non trovato\n\nRicompila l\'app.');
+                return false;
+            }
+            const result = await FirebaseAuthentication.signInWithGoogle();
+            const idToken = result.credential?.idToken;
+            if (!idToken) {
+                alert('❌ Nessun token Google ricevuto');
+                return false;
+            }
+            const credential = firebase.auth.GoogleAuthProvider.credential(idToken);
+            const userCredential = await auth.signInWithCredential(credential);
+            await handleFirebaseSignIn(userCredential.user);
+            return true;
+        } else {
+            // Browser PWA: use popup
+            const provider = new firebase.auth.GoogleAuthProvider();
+            const result = await auth.signInWithPopup(provider);
+            await handleFirebaseSignIn(result.user);
+            return true;
         }
-
-        return true;
 
     } catch (error) {
         console.error('Firebase sign-in error:', error);
-        alert('❌ Errore accesso Firebase\n\nRiprova o continua senza sync cloud.');
+        alert('❌ Errore accesso Firebase\n\n' + error.message + '\n\nRiprova o continua senza sync cloud.');
         return false;
     }
 };
+
+async function handleFirebaseSignIn(user) {
+    currentFirebaseUser = user;
+    console.log('✅ Firebase signed in:', user.email);
+
+    localStorage.setItem(`firebase_sync_enabled_${currentUser}`, 'true');
+    syncEnabled = true;
+
+    await migrateLocalDataToFirestore();
+    startRealtimeSync();
+
+    alert(`✅ Cloud Sync attivato!\n\n📧 Account: ${user.email}\n\n🔄 I tuoi dati saranno sincronizzati su tutti i dispositivi!`);
+
+    if (typeof window.updateCloudSyncUI === 'function') {
+        const lastSync = localStorage.getItem(`last_firebase_sync_${currentUser}`);
+        window.updateCloudSyncUI(true, user.email, lastSync);
+    }
+}
 
 // Controlla se già loggato
 auth.onAuthStateChanged(async (user) => {
@@ -84,10 +104,7 @@ auth.onAuthStateChanged(async (user) => {
             syncEnabled = true;
             console.log('🔄 Auto-sync cloud attivo per:', user.email);
 
-            // Carica dati da Firestore
             await loadDataFromFirestore();
-
-            // Avvia sync real-time
             startRealtimeSync();
         }
     }
@@ -167,24 +184,48 @@ async function loadDataFromFirestore() {
         if (cloudData.dailySteps) localStorage.setItem(`dailySteps_${currentUser}`, JSON.stringify(cloudData.dailySteps));
         if (cloudData.workoutTracking) localStorage.setItem(`workoutTracking_${currentUser}`, JSON.stringify(cloudData.workoutTracking));
 
-        // Aggiorna variabili globali in app.js
+        // Aggiorna TUTTE le variabili globali in app.js
         if (typeof meals !== 'undefined' && cloudData.meals) meals = cloudData.meals;
         if (typeof weights !== 'undefined' && cloudData.weights) weights = cloudData.weights;
         if (typeof activities !== 'undefined' && cloudData.activities) activities = cloudData.activities;
         if (typeof goal !== 'undefined' && cloudData.goal) goal = cloudData.goal;
+        if (typeof selectedDiet !== 'undefined' && cloudData.selectedDiet) selectedDiet = cloudData.selectedDiet;
+        if (typeof dailyTracking !== 'undefined' && cloudData.dailyTracking) dailyTracking = cloudData.dailyTracking;
+        if (typeof dailySteps !== 'undefined' && cloudData.dailySteps) dailySteps = cloudData.dailySteps;
+        if (typeof workoutTracking !== 'undefined' && cloudData.workoutTracking) workoutTracking = cloudData.workoutTracking;
 
-        lastSyncTime = cloudData.lastUpdated?.toDate().toISOString() || new Date().toISOString();
+        lastSyncTime = cloudData.lastUpdated?.toDate()?.toISOString() || new Date().toISOString();
         localStorage.setItem(`last_firebase_sync_${currentUser}`, lastSyncTime);
 
         console.log('✅ Dati sincronizzati da cloud');
 
-        // Ricarica UI
-        if (typeof loadTodayMeals === 'function') loadTodayMeals();
-        if (typeof loadCurrentWeight === 'function') loadCurrentWeight();
-        if (typeof loadGoalStatus === 'function') loadGoalStatus();
+        // Aggiorna UI cloud sync timestamp
+        if (typeof window.updateCloudSyncUI === 'function' && currentFirebaseUser) {
+            window.updateCloudSyncUI(true, currentFirebaseUser.email, lastSyncTime);
+        }
+
+        // Ricarica tutta l'UI con i nuovi dati
+        const uiFunctions = [
+            'loadTodayMeals', 'loadTodayCalories', 'loadTodayActivities',
+            'loadTodayActivityStats', 'loadCurrentWeight', 'loadWeightChart',
+            'loadGoalStatus', 'loadSelectedDiet', 'updateGoalProgress',
+            'loadTodaysPlan', 'updateDailySummary', 'updateWeeklyChart',
+            'loadDailySteps', 'updateCharts', 'updateBadges',
+            'loadBodyMeasurements', 'loadWaterIntake', 'updateMacros',
+            'updatePerformanceMetrics', 'checkCalorieAlert'
+        ];
+        uiFunctions.forEach(fn => {
+            if (typeof window[fn] === 'function') {
+                try { window[fn](); } catch(e) { console.warn('UI refresh error:', fn, e); }
+            }
+        });
 
     } catch (error) {
         console.error('Errore caricamento da Firestore:', error);
+        if (error.code) {
+            // Errore Firestore reale (permission-denied, unavailable, ecc.)
+            alert('❌ Errore Cloud Sync\n\nCodice: ' + error.code);
+        }
     }
 }
 
@@ -202,7 +243,7 @@ function startRealtimeSync() {
         .onSnapshot((doc) => {
             if (doc.exists) {
                 const cloudData = doc.data();
-                const cloudTimestamp = cloudData.lastUpdated?.toDate().toISOString();
+                const cloudTimestamp = cloudData.lastUpdated?.toDate()?.toISOString();
                 const localTimestamp = localStorage.getItem(`last_firebase_sync_${currentUser}`);
 
                 // Solo sync se dati cloud più recenti
@@ -266,6 +307,7 @@ window.syncToFirestore = async function() {
 
     } catch (error) {
         console.error('Errore sync Firestore:', error);
+        alert('❌ Errore salvataggio cloud\n\nCodice: ' + (error.code || error.message));
     }
 };
 

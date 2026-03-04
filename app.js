@@ -3840,25 +3840,6 @@ function loadDailySteps() {
     document.getElementById('daily-steps-calories').textContent = `${todaySteps.calories} kcal extra`;
 }
 
-// Google Fit Integration (OAuth)
-window.connectGoogleFit = function() {
-    alert('🔗 Google Fit Integration\n\n' +
-          'Funzionalità in arrivo!\n\n' +
-          'Per ora usa "Aggiungi Passi" manualmente.\n\n' +
-          'Controlla i passi sul tuo telefono:\n' +
-          '• Android: App "Google Fit" o "Salute"\n' +
-          '• iPhone: App "Salute"\n\n' +
-          'Poi inserisci il numero qui.');
-
-    // TODO: Implement Google Fit OAuth
-    // Steps:
-    // 1. Register app at https://console.cloud.google.com
-    // 2. Enable Fitness API
-    // 3. Get OAuth client ID
-    // 4. Implement OAuth flow
-    // 5. Fetch steps from Fitness API
-};
-
 // ===========================
 // MODIFY WORKOUT FUNCTIONALITY
 // ===========================
@@ -3892,523 +3873,6 @@ window.modifyWorkoutPlan = function() {
 
     alert(message);
 };
-
-// ===========================
-// GPS TRACKING
-// ===========================
-
-let gpsTracking = false;
-let gpsStartTime = null;
-let gpsDistance = 0;
-let gpsLastPosition = null;
-let gpsWatchId = null;
-let gpsInterval = null;
-
-window.startGPSTracking = function() {
-    if (!navigator.geolocation) {
-        alert('❌ GPS non supportato su questo dispositivo');
-        return;
-    }
-
-    if (!gpsTracking) {
-        // Start tracking
-        gpsTracking = true;
-        gpsStartTime = Date.now();
-        gpsDistance = 0;
-        gpsLastPosition = null;
-
-        document.getElementById('gps-status').textContent = '⏹️ Stop Tracking';
-        document.getElementById('gps-data').style.display = 'block';
-
-        // Watch position
-        gpsWatchId = navigator.geolocation.watchPosition(
-            (position) => {
-                if (gpsLastPosition) {
-                    // Calculate distance (Haversine formula)
-                    const lat1 = gpsLastPosition.coords.latitude;
-                    const lon1 = gpsLastPosition.coords.longitude;
-                    const lat2 = position.coords.latitude;
-                    const lon2 = position.coords.longitude;
-
-                    const R = 6371; // Earth radius in km
-                    const dLat = (lat2 - lat1) * Math.PI / 180;
-                    const dLon = (lon2 - lon1) * Math.PI / 180;
-                    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                              Math.sin(dLon/2) * Math.sin(dLon/2);
-                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                    const distance = R * c;
-
-                    gpsDistance += distance;
-                }
-
-                gpsLastPosition = position;
-                updateGPSDisplay();
-            },
-            (error) => {
-                console.error('GPS error:', error);
-                alert('❌ Errore GPS. Attiva la geolocalizzazione nelle impostazioni.');
-                stopGPSTracking();
-            },
-            {
-                enableHighAccuracy: true,
-                maximumAge: 0,
-                timeout: 5000
-            }
-        );
-
-        // Update timer every second
-        gpsInterval = setInterval(updateGPSDisplay, 1000);
-
-    } else {
-        // Stop tracking
-        stopGPSTracking();
-    }
-};
-
-function stopGPSTracking() {
-    gpsTracking = false;
-
-    if (gpsWatchId) {
-        navigator.geolocation.clearWatch(gpsWatchId);
-        gpsWatchId = null;
-    }
-
-    if (gpsInterval) {
-        clearInterval(gpsInterval);
-        gpsInterval = null;
-    }
-
-    document.getElementById('gps-status').textContent = '▶️ Avvia Tracking';
-
-    // Save activity
-    if (gpsDistance > 0.1) { // Min 100m
-        const duration = Math.round((Date.now() - gpsStartTime) / 60000); // minutes
-        const avgSpeed = (gpsDistance / (duration / 60)).toFixed(1); // km/h
-
-        // Calculate calories (MET for running/walking based on speed)
-        let met = avgSpeed > 7 ? 9.0 : avgSpeed > 5 ? 6.0 : 3.5;
-        const weight = weights.length > 0 ? [...weights].sort((a, b) => new Date(b.date) - new Date(a.date))[0].weight : 70;
-        const calories = Math.round(met * weight * (duration / 60));
-
-        const activity = {
-            id: Date.now().toString(),
-            date: getTodayString(),
-            type: avgSpeed > 7 ? 'corsa' : avgSpeed > 5 ? 'corsa' : 'camminata',
-            duration: duration,
-            steps: Math.round(gpsDistance * 1300), // Approx steps
-            intensity: avgSpeed > 7 ? 'alta' : avgSpeed > 5 ? 'media' : 'bassa',
-            calories: calories,
-            notes: `GPS Tracking: ${gpsDistance.toFixed(2)} km, velocità media ${avgSpeed} km/h`,
-            timestamp: new Date().toISOString()
-        };
-
-        activities.push(activity);
-        saveData();
-        loadTodayActivities();
-        loadTodayActivityStats();
-
-        alert(`✅ Attività salvata!\n\n📏 ${gpsDistance.toFixed(2)} km\n⏱️ ${duration} min\n⚡ ${avgSpeed} km/h\n🔥 ${calories} kcal`);
-    }
-
-    // Reset
-    gpsDistance = 0;
-    gpsStartTime = null;
-    gpsLastPosition = null;
-}
-
-function updateGPSDisplay() {
-    if (!gpsTracking) return;
-
-    document.getElementById('gps-distance').textContent = gpsDistance.toFixed(2);
-
-    const elapsed = (Date.now() - gpsStartTime) / 1000; // seconds
-    const hours = Math.floor(elapsed / 3600);
-    const minutes = Math.floor((elapsed % 3600) / 60);
-    const seconds = Math.floor(elapsed % 60);
-    document.getElementById('gps-time').textContent =
-        `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-
-    if (elapsed > 0 && gpsDistance > 0) {
-        const speed = (gpsDistance / (elapsed / 3600)).toFixed(1); // km/h
-        document.getElementById('gps-speed').textContent = speed;
-    }
-}
-
-// ===========================
-// HEART RATE MONITOR (BLUETOOTH)
-// ===========================
-
-let hrDevice = null;
-let hrCharacteristic = null;
-
-window.connectHeartRate = async function() {
-    if (!navigator.bluetooth) {
-        alert('❌ Bluetooth non supportato\n\nFunziona solo su Chrome/Edge su Android/Windows');
-        return;
-    }
-
-    try {
-        // Request Bluetooth device
-        hrDevice = await navigator.bluetooth.requestDevice({
-            filters: [{ services: ['heart_rate'] }],
-            optionalServices: ['heart_rate']
-        });
-
-        const server = await hrDevice.gatt.connect();
-        const service = await server.getPrimaryService('heart_rate');
-        hrCharacteristic = await service.getCharacteristic('heart_rate_measurement');
-
-        // Start notifications
-        await hrCharacteristic.startNotifications();
-        hrCharacteristic.addEventListener('characteristicvaluechanged', handleHRChange);
-
-        document.getElementById('hr-data').style.display = 'block';
-        alert('✅ Dispositivo connesso!\n\nFrequenza cardiaca in tempo reale');
-
-    } catch (error) {
-        console.error('Bluetooth error:', error);
-        alert('❌ Errore connessione\n\nAssicurati che il dispositivo sia acceso e vicino.');
-    }
-};
-
-function handleHRChange(event) {
-    const value = event.target.value;
-    const hr = value.getUint8(1); // Heart rate value
-
-    document.getElementById('hr-value').textContent = hr;
-
-    // Change color based on HR zone
-    const hrElement = document.getElementById('hr-value').parentElement;
-    if (hr > 160) {
-        hrElement.style.color = '#e74c3c'; // Red - high
-    } else if (hr > 140) {
-        hrElement.style.color = '#f39c12'; // Orange - moderate-high
-    } else if (hr > 120) {
-        hrElement.style.color = '#f1c40f'; // Yellow - moderate
-    } else {
-        hrElement.style.color = '#2ecc71'; // Green - low
-    }
-}
-
-// ===========================
-// GOOGLE FIT OAUTH (NUOVO - Google Identity Services)
-// ===========================
-
-let googleAccessToken = null;
-
-window.connectGoogleFitOAuth = function() {
-    const CLIENT_ID = '803319997631-6ts9tivtdldbsqsalvr7ujls34hvpu5t.apps.googleusercontent.com';
-    const SCOPES = encodeURIComponent(
-        'https://www.googleapis.com/auth/fitness.activity.read ' +
-        'https://www.googleapis.com/auth/fitness.body.read'
-    );
-    const REDIRECT_URI = encodeURIComponent('https://gabrielxza.github.io/valahia-diet-gym');
-
-    // Salva utente corrente prima del redirect
-    localStorage.setItem('googleFit_connecting', currentUser);
-
-    // Redirect diretto all'OAuth Google (implicit flow - nessun popup)
-    const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth` +
-        `?client_id=${CLIENT_ID}` +
-        `&redirect_uri=${REDIRECT_URI}` +
-        `&response_type=token` +
-        `&scope=${SCOPES}` +
-        `&prompt=consent`;
-
-    window.location.href = oauthUrl;
-};
-
-// Rinnova il token silenziosamente (senza schermata di consenso se già autorizzato)
-function silentRefreshGoogleFit() {
-    const CLIENT_ID = '803319997631-6ts9tivtdldbsqsalvr7ujls34hvpu5t.apps.googleusercontent.com';
-    const SCOPES = encodeURIComponent(
-        'https://www.googleapis.com/auth/fitness.activity.read ' +
-        'https://www.googleapis.com/auth/fitness.body.read'
-    );
-    const REDIRECT_URI = encodeURIComponent('https://gabrielxza.github.io/valahia-diet-gym');
-    const loginHint = localStorage.getItem(`googleFit_email_${currentUser}`) || '';
-
-    localStorage.setItem('googleFit_connecting', currentUser);
-    localStorage.setItem('googleFit_silent', 'true');
-
-    // prompt=none → Google rinnova il token senza mostrare nessuna schermata
-    const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth` +
-        `?client_id=${CLIENT_ID}` +
-        `&redirect_uri=${REDIRECT_URI}` +
-        `&response_type=token` +
-        `&scope=${SCOPES}` +
-        `&prompt=none` +
-        (loginHint ? `&login_hint=${encodeURIComponent(loginHint)}` : '');
-
-    window.location.href = oauthUrl;
-}
-
-// Gestisce il callback OAuth dopo il redirect da Google
-async function handleGoogleFitCallback() {
-    const hash = window.location.hash;
-    if (!hash || !hash.includes('access_token')) return;
-
-    const connectingUser = localStorage.getItem('googleFit_connecting');
-    if (!connectingUser) return;
-    localStorage.removeItem('googleFit_connecting');
-
-    // Leggi access token dall'URL hash
-    const params = new URLSearchParams(hash.substring(1));
-    const accessToken = params.get('access_token');
-    if (!accessToken) return;
-
-    googleAccessToken = accessToken;
-    localStorage.setItem(`googleFit_token_${connectingUser}`, accessToken);
-
-    // Pulisci l'URL (rimuovi hash)
-    window.history.replaceState({}, document.title, window.location.pathname);
-
-    const isSilent = localStorage.getItem('googleFit_silent') === 'true';
-    localStorage.removeItem('googleFit_silent');
-
-    // Load gapi client
-    if (typeof gapi === 'undefined') {
-        await loadGapiClient();
-    }
-    await gapi.client.init({
-        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/fitness/v1/rest']
-    });
-    gapi.client.setToken({ access_token: accessToken });
-
-    if (!isSilent) {
-        // Salva email per i refresh futuri
-        try {
-            const payload = JSON.parse(atob(accessToken.split('.')[1]));
-            if (payload.email) localStorage.setItem(`googleFit_email_${connectingUser}`, payload.email);
-        } catch(e) {}
-        alert('✅ Google Fit connesso!\n\nSincronizzazione automatica attivata.\nI passi verranno importati ogni volta che apri l\'app!');
-        if (document.getElementById('gfit-status')) {
-            document.getElementById('gfit-status').style.display = 'block';
-        }
-    }
-
-    await syncGoogleFitData();
-};
-
-function loadGoogleIdentityServices() {
-    return new Promise((resolve, reject) => {
-        if (typeof google !== 'undefined' && google.accounts) {
-            resolve();
-            return;
-        }
-
-        const script = document.createElement('script');
-        script.src = 'https://accounts.google.com/gsi/client';
-        script.onload = resolve;
-        script.onerror = reject;
-        document.head.appendChild(script);
-    });
-}
-
-function loadGapiClient() {
-    return new Promise((resolve, reject) => {
-        if (typeof gapi !== 'undefined') {
-            resolve();
-            return;
-        }
-
-        const script = document.createElement('script');
-        script.src = 'https://apis.google.com/js/api.js';
-        script.onload = () => {
-            gapi.load('client', resolve);
-        };
-        script.onerror = reject;
-        document.head.appendChild(script);
-    });
-}
-
-async function syncGoogleFitData() {
-    try {
-        if (!googleAccessToken) {
-            throw new Error('Token non disponibile. Riconnetti Google Fit.');
-        }
-
-        // Fix timestamp calculation (create new Date objects to avoid mutation)
-        const now = new Date();
-        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
-        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime();
-
-        console.log('Fetching Google Fit data from', new Date(startOfDay), 'to', new Date(endOfDay));
-
-        // Use fetch() directly with access token (more reliable with GIS)
-        const response = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${googleAccessToken}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                aggregateBy: [{
-                    dataTypeName: 'com.google.step_count.delta',
-                    dataSourceId: 'derived:com.google.step_count.delta:com.google.android.gms:estimated_steps'
-                }],
-                bucketByTime: { durationMillis: endOfDay - startOfDay },
-                startTimeMillis: startOfDay,
-                endTimeMillis: endOfDay
-            })
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Fitness API error:', response.status, errorText);
-            throw new Error(`Errore API: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('Google Fit response:', data);
-
-        // Extract steps from response
-        let steps = 0;
-        if (data.bucket && data.bucket.length > 0) {
-            const bucket = data.bucket[0];
-            if (bucket.dataset && bucket.dataset.length > 0) {
-                const dataset = bucket.dataset[0];
-                if (dataset.point && dataset.point.length > 0) {
-                    steps = dataset.point.reduce((total, point) => {
-                        return total + (point.value && point.value[0] ? point.value[0].intVal : 0);
-                    }, 0);
-                }
-            }
-        }
-
-        console.log('Steps found:', steps);
-
-        // Save to daily steps
-        const todayStr = getTodayString();
-        const currentWeight = weights.length > 0 ? [...weights].sort((a, b) => new Date(b.date) - new Date(a.date))[0].weight : 70;
-        const calories = Math.round(steps * currentWeight * 0.04);
-
-        dailySteps[todayStr] = {
-            steps,
-            calories,
-            weight: currentWeight,
-            source: 'google_fit',
-            timestamp: new Date().toISOString()
-        };
-
-        saveData();
-        if (typeof loadDailySteps === 'function') {
-            loadDailySteps();
-        }
-
-        alert(`✅ Sincronizzato Google Fit!\n\n👟 ${steps.toLocaleString()} passi\n🔥 ${calories} kcal`);
-
-    } catch (error) {
-        console.error('Errore sincronizzazione Google Fit:', error);
-        alert(`❌ Errore sincronizzazione\n\n${error.message}\n\nRiprova o usa inserimento manuale.`);
-    }
-}
-
-// Auto-sync Google Fit all'apertura dell'app (silenzioso)
-async function autoSyncGoogleFitOnStartup() {
-    try {
-        // Controlla se Google Fit è stato connesso in precedenza
-        const lastSync = localStorage.getItem(`googleFit_lastSync_${currentUser}`);
-        const savedToken = localStorage.getItem(`googleFit_token_${currentUser}`);
-
-        if (!savedToken) {
-            // Non ancora connesso, salta
-            return;
-        }
-
-        // Controlla se è già stato sincronizzato oggi
-        const today = getTodayString();
-        if (lastSync === today) {
-            console.log('Google Fit già sincronizzato oggi');
-            return;
-        }
-
-        // Token salvato, prova auto-sync silenzioso
-        googleAccessToken = savedToken;
-
-        console.log('Auto-sync Google Fit in corso...');
-
-        // Sincronizza senza mostrare alert
-        const now = new Date();
-        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
-        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime();
-
-        const response = await fetch('https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${googleAccessToken}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                aggregateBy: [{
-                    dataTypeName: 'com.google.step_count.delta',
-                    dataSourceId: 'derived:com.google.step_count.delta:com.google.android.gms:estimated_steps'
-                }],
-                bucketByTime: { durationMillis: endOfDay - startOfDay },
-                startTimeMillis: startOfDay,
-                endTimeMillis: endOfDay
-            })
-        });
-
-        if (!response.ok) {
-            // Token scaduto — riautorizza silenziosamente (nessuna schermata se già autorizzato)
-            console.log('Token Google Fit scaduto, riautorizzo silenziosamente...');
-            localStorage.removeItem(`googleFit_token_${currentUser}`);
-            silentRefreshGoogleFit();
-            return;
-        }
-
-        const data = await response.json();
-
-        // Extract steps
-        let steps = 0;
-        if (data.bucket && data.bucket.length > 0) {
-            const bucket = data.bucket[0];
-            if (bucket.dataset && bucket.dataset.length > 0) {
-                const dataset = bucket.dataset[0];
-                if (dataset.point && dataset.point.length > 0) {
-                    steps = dataset.point.reduce((total, point) => {
-                        return total + (point.value && point.value[0] ? point.value[0].intVal : 0);
-                    }, 0);
-                }
-            }
-        }
-
-        // Save to daily steps
-        const todayStr = getTodayString();
-        const currentWeight = weights.length > 0 ? [...weights].sort((a, b) => new Date(b.date) - new Date(a.date))[0].weight : 70;
-        const calories = Math.round(steps * currentWeight * 0.04);
-
-        dailySteps[todayStr] = {
-            steps,
-            calories,
-            weight: currentWeight,
-            source: 'google_fit',
-            timestamp: new Date().toISOString()
-        };
-
-        saveData();
-        if (typeof loadDailySteps === 'function') {
-            loadDailySteps();
-        }
-
-        // Salva data ultima sincronizzazione
-        localStorage.setItem(`googleFit_lastSync_${currentUser}`, today);
-
-        console.log(`✅ Auto-sync completato: ${steps} passi`);
-
-        // Mostra notifica discreta (opzionale)
-        if (steps > 0 && document.getElementById('gfit-status')) {
-            document.getElementById('gfit-status').style.display = 'block';
-            document.getElementById('gfit-status').textContent = `✅ Sincronizzato: ${steps.toLocaleString()} passi`;
-        }
-
-    } catch (error) {
-        console.error('Auto-sync Google Fit fallito:', error);
-        // Fallisce silenziosamente, non disturba l'utente
-    }
-}
 
 // ===========================
 // CLOUD SYNC UI FUNCTIONS
@@ -4674,11 +4138,8 @@ function init() {
     updateMacros();
     updatePerformanceMetrics();
 
-    // Gestisci callback Google Fit OAuth (dopo redirect)
-    handleGoogleFitCallback();
-
-    // Auto-sync Google Fit se già connesso
-    autoSyncGoogleFitOnStartup();
+    // Health Connect (Android native app only)
+    initHealthConnect();
 }
 
 // ========================================
@@ -6482,5 +5943,137 @@ window.showCalorieTargetInfo = function() {
 
     alert(message);
 };
+
+// ========================================
+// HEALTH CONNECT INTEGRATION (Android native)
+// ========================================
+
+// ===========================
+// HARDWARE STEP COUNTER
+// Uses Android TYPE_STEP_COUNTER sensor (no Health Connect / Play Store needed)
+// ===========================
+
+async function initHealthConnect() {
+    if (!window.Capacitor || !window.Capacitor.isNativePlatform()) return;
+
+    const SC = window.Capacitor.Plugins.StepCounter;
+    if (!SC) return;
+
+    try {
+        const { available } = await SC.isAvailable();
+        if (!available) return;
+
+        // Check if ACTIVITY_RECOGNITION permission already granted
+        const perm = await window.Capacitor.Plugins.Permissions?.query({ name: 'activityRecognition' }).catch(() => null);
+        if (perm?.state === 'granted') {
+            document.getElementById('hc-btn').style.display = 'none';
+            document.getElementById('hc-status').style.display = 'block';
+            await syncHealthConnectSteps();
+
+            setInterval(() => syncHealthConnectSteps(), 30 * 60 * 1000);
+        }
+    } catch (error) {
+        console.warn('StepCounter init error:', error.message);
+    }
+}
+
+// Called when user taps "Configura" button
+window.setupHealthConnect = async function() {
+    if (!window.Capacitor || !window.Capacitor.isNativePlatform()) {
+        alert('Funzione disponibile solo nell\'app Android.');
+        return;
+    }
+
+    const SC = window.Capacitor.Plugins.StepCounter;
+    if (!SC) {
+        alert('Plugin contatore passi non trovato. Ricompila l\'app.');
+        return;
+    }
+
+    try {
+        const { available } = await SC.isAvailable();
+        if (!available) {
+            alert('Sensore contatore passi non disponibile su questo dispositivo.');
+            return;
+        }
+
+        // Request ACTIVITY_RECOGNITION permission
+        await SC.requestPermissions();
+
+        document.getElementById('hc-btn').style.display = 'none';
+        document.getElementById('hc-status').style.display = 'block';
+        await syncHealthConnectSteps();
+
+        setInterval(() => syncHealthConnectSteps(), 30 * 60 * 1000);
+        alert('✅ Contatore passi attivato!\n\nI passi verranno letti automaticamente dal sensore del telefono.');
+
+    } catch (error) {
+        alert('Errore: ' + error.message);
+    }
+};
+
+async function syncHealthConnectSteps() {
+    const SC = window.Capacitor?.Plugins?.StepCounter;
+    if (!SC) return;
+
+    try {
+        const { steps: currentTotal } = await SC.getStepCount();
+        const today = getTodayString();
+        const stored = JSON.parse(localStorage.getItem(`stepTracker_${currentUser}`) || '{}');
+
+        let todaySteps = stored.todaySteps || 0;
+
+        if (stored.date !== today) {
+            // New day — reset today's count
+            todaySteps = 0;
+        } else if (stored.lastTotal !== undefined) {
+            const diff = currentTotal - stored.lastTotal;
+            if (diff > 0) {
+                todaySteps += diff;
+            } else if (diff < 0) {
+                // Device rebooted: currentTotal is steps since reboot
+                todaySteps += currentTotal;
+            }
+        }
+
+        localStorage.setItem(`stepTracker_${currentUser}`, JSON.stringify({
+            date: today,
+            lastTotal: currentTotal,
+            todaySteps
+        }));
+
+        if (todaySteps <= 0) return;
+
+        let weight = 70;
+        if (weights.length > 0) {
+            weight = [...weights].sort((a, b) => new Date(b.date) - new Date(a.date))[0].weight;
+        }
+        const calories = Math.round(todaySteps * weight * 0.04);
+
+        dailySteps[today] = {
+            steps: todaySteps,
+            calories,
+            weight,
+            timestamp: new Date().toISOString(),
+            source: 'hardware'
+        };
+
+        localStorage.setItem(`dailySteps_${currentUser}`, JSON.stringify(dailySteps));
+        loadDailySteps();
+        updateDailySummary();
+
+        if (typeof window.syncToFirestore === 'function') window.syncToFirestore();
+
+        console.log(`✅ Passi hardware: ${todaySteps.toLocaleString()} oggi (${calories} kcal)`);
+
+    } catch (error) {
+        console.warn('StepCounter sync error:', error.message);
+    }
+}
+
+window.syncHealthConnectSteps = syncHealthConnectSteps;
+
+// Expose for manual refresh button (if needed)
+window.syncHealthConnectSteps = syncHealthConnectSteps;
 
 document.addEventListener('DOMContentLoaded', init);
