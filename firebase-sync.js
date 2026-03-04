@@ -83,7 +83,16 @@ async function handleFirebaseSignIn(user) {
     localStorage.setItem(`firebase_sync_enabled_${currentUser}`, 'true');
     syncEnabled = true;
 
-    await migrateLocalDataToFirestore();
+    // If local data is empty (fresh install), download from cloud instead of overwriting it
+    const localHasData = (typeof meals !== 'undefined' && meals.length > 0)
+        || (typeof weights !== 'undefined' && weights.length > 0)
+        || (typeof goal !== 'undefined' && goal !== null);
+
+    if (localHasData) {
+        await migrateLocalDataToFirestore();
+    } else {
+        await loadDataFromFirestore();
+    }
     startRealtimeSync();
 
     alert(`✅ Cloud Sync attivato!\n\n📧 Account: ${user.email}\n\n🔄 I tuoi dati saranno sincronizzati su tutti i dispositivi!`);
