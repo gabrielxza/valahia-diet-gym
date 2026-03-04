@@ -983,9 +983,27 @@ function generateWorkoutPlan() {
         }
     ];
 
-    // Filter days based on activityLevel
-    const daysCount = level <= 1.375 ? 3 : level <= 1.55 ? 5 : workoutPlan.length;
-    displayWorkoutPlan(workoutPlan.slice(0, daysCount), exerciseCaloriesDaily);
+    // Add Tue/Thu for 6-7 day schedules
+    const martedi = {
+        day: 'Martedì', icon: '🏃', focus: 'Cardio Leggero + Core',
+        exercises: [
+            { name: 'Camminata Veloce', duration: Math.round(exerciseCaloriesDaily / 8), calories: exerciseCaloriesDaily, details: 'Velocità 6-7 km/h' },
+            { name: 'Ab Crunch', sets: '4 serie x 20 ripetizioni', rest: '30 sec', calories: 60 },
+            { name: 'Plank', sets: '3 serie x 45 secondi', rest: '30 sec', calories: 40 }
+        ]
+    };
+    const giovedi = {
+        day: 'Giovedì', icon: '💪', focus: 'Parte Superiore Leggera',
+        exercises: [
+            { name: 'Cyclette', duration: Math.round(exerciseCaloriesDaily / 10), calories: Math.round(exerciseCaloriesDaily * 0.5), details: 'Ritmo moderato' },
+            { name: 'Lat Pull Down', sets: '3 serie x 12 ripetizioni', rest: '60 sec', calories: 85 },
+            { name: 'Shoulder Press', sets: '3 serie x 10 ripetizioni', rest: '60 sec', calories: 80 }
+        ]
+    };
+    const fullPlan = [...workoutPlan, martedi, giovedi]; // 7 days total
+
+    const daysCount = level <= 1.375 ? 3 : level <= 1.55 ? 5 : level <= 1.725 ? 6 : 7;
+    displayWorkoutPlan(fullPlan.slice(0, daysCount), exerciseCaloriesDaily);
 }
 
 function displayWorkoutPlan(plan, dailyTarget) {
@@ -3087,8 +3105,12 @@ function getWeekStart() {
 }
 
 function loadTodaysPlan() {
+    const section = document.getElementById('today-plan-section');
+    if (!section) return;
+    section.style.display = 'block';
+
     if (!goal) {
-        document.getElementById('today-plan-section').style.display = 'none';
+        section.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-muted);">⚙️ Imposta il tuo obiettivo per vedere il piano di oggi.</div>';
         return;
     }
 

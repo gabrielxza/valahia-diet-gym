@@ -1,5 +1,5 @@
 // Incrementa questo numero ad ogni update dell'app!
-const CACHE_VERSION = 'v22';
+const CACHE_VERSION = 'v23';
 const CACHE_NAME = `valahia-gym-${CACHE_VERSION}`;
 
 const urlsToCache = [
