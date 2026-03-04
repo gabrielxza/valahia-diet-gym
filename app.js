@@ -824,6 +824,13 @@ function updateGoalProgress() {
 function generateWorkoutPlan() {
     if (!goal) return;
 
+    const level = goal.activityLevel || 1.375;
+    if (level <= 1.2) {
+        const container = document.getElementById('workout-plan-container');
+        if (container) container.innerHTML = '<p style="text-align:center;padding:40px;color:var(--text-muted);">😴 Nessun allenamento pianificato.<br>Aumenta il livello di attività nell\'obiettivo per vedere un piano.</p>';
+        return;
+    }
+
     // Calculate weekly calorie deficit needed
     const weeklyDeficit = goal.weeklyGoal * 7700; // kcal/week
     const dailyDeficit = weeklyDeficit / 7;
@@ -976,8 +983,9 @@ function generateWorkoutPlan() {
         }
     ];
 
-    // Display workout plan
-    displayWorkoutPlan(workoutPlan, exerciseCaloriesDaily);
+    // Filter days based on activityLevel
+    const daysCount = level <= 1.375 ? 3 : level <= 1.55 ? 5 : workoutPlan.length;
+    displayWorkoutPlan(workoutPlan.slice(0, daysCount), exerciseCaloriesDaily);
 }
 
 function displayWorkoutPlan(plan, dailyTarget) {
