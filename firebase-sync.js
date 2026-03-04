@@ -209,6 +209,7 @@ async function loadDataFromFirestore() {
             'loadTodayMeals', 'loadTodayCalories', 'loadTodayActivities',
             'loadTodayActivityStats', 'loadCurrentWeight', 'loadWeightChart',
             'loadGoalStatus', 'loadSelectedDiet', 'updateGoalProgress',
+            'displayTodaysWorkout',
             'loadTodaysPlan', 'updateDailySummary', 'updateWeeklyChart',
             'loadDailySteps', 'updateCharts', 'updateBadges',
             'loadBodyMeasurements', 'loadWaterIntake', 'updateMacros',
