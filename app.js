@@ -169,7 +169,10 @@ function getTodaysWorkout() {
         return null;
     }
 
-    const dayIndex = workoutTracking.currentDayIndex % program.days.length;
+    // Use actual day of week: Mon=0, Tue=1, ..., Sun=6
+    const jsDay = new Date().getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    const weekDay = jsDay === 0 ? 6 : jsDay - 1;
+    const dayIndex = weekDay % program.days.length;
     const todayWorkout = program.days[dayIndex];
 
     return {
@@ -5959,11 +5962,12 @@ async function initHealthConnect() {
         // Check if ACTIVITY_RECOGNITION permission already granted
         const perm = await window.Capacitor.Plugins.Permissions?.query({ name: 'activityRecognition' }).catch(() => null);
         if (perm?.state === 'granted') {
+            await SC.startTracking();
             document.getElementById('hc-btn').style.display = 'none';
             document.getElementById('hc-status').style.display = 'block';
             await syncHealthConnectSteps();
 
-            setInterval(() => syncHealthConnectSteps(), 30 * 60 * 1000);
+            setInterval(() => syncHealthConnectSteps(), 5 * 60 * 1000);
         }
     } catch (error) {
         console.warn('StepCounter init error:', error.message);
@@ -5993,12 +5997,15 @@ window.setupHealthConnect = async function() {
         // Request ACTIVITY_RECOGNITION permission
         await SC.requestPermissions();
 
+        // Start persistent sensor listener
+        await SC.startTracking();
+
         document.getElementById('hc-btn').style.display = 'none';
         document.getElementById('hc-status').style.display = 'block';
         await syncHealthConnectSteps();
 
-        setInterval(() => syncHealthConnectSteps(), 30 * 60 * 1000);
-        alert('✅ Contatore passi attivato!\n\nI passi verranno letti automaticamente dal sensore del telefono.');
+        setInterval(() => syncHealthConnectSteps(), 5 * 60 * 1000);
+        alert('✅ Contatore passi attivato!\n\nI passi verranno aggiornati ogni 5 minuti.\n\nCammina un po\' e premi "Sincronizza ora" per vedere subito i passi.');
 
     } catch (error) {
         alert('Errore: ' + error.message);
@@ -6010,15 +6017,22 @@ async function syncHealthConnectSteps() {
     if (!SC) return;
 
     try {
-        const { steps: currentTotal } = await SC.getStepCount();
+        const { steps: currentTotal, ready } = await SC.getStepCount();
+
+        // Sensor not yet initialized (user hasn't walked since app started)
+        if (!ready || currentTotal < 0) {
+            console.log('⏳ Sensore passi in inizializzazione - cammina un po\'');
+            return;
+        }
+
         const today = getTodayString();
         const stored = JSON.parse(localStorage.getItem(`stepTracker_${currentUser}`) || '{}');
 
         let todaySteps = stored.todaySteps || 0;
 
         if (stored.date !== today) {
-            // New day — reset today's count
-            todaySteps = 0;
+            // New day — baseline from previous reading
+            todaySteps = stored.lastTotal !== undefined ? Math.max(0, currentTotal - stored.lastTotal) : 0;
         } else if (stored.lastTotal !== undefined) {
             const diff = currentTotal - stored.lastTotal;
             if (diff > 0) {
@@ -6027,6 +6041,7 @@ async function syncHealthConnectSteps() {
                 // Device rebooted: currentTotal is steps since reboot
                 todaySteps += currentTotal;
             }
+            // diff === 0: no change, keep todaySteps as-is
         }
 
         localStorage.setItem(`stepTracker_${currentUser}`, JSON.stringify({
