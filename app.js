@@ -6135,7 +6135,11 @@ async function syncHealthConnectSteps() {
 
         if (stored.date !== today) {
             // New day — baseline from previous reading
-            todaySteps = stored.lastTotal !== undefined ? Math.max(0, currentTotal - stored.lastTotal) : 0;
+            // Only use baseline if > 0 (lastTotal:0 means corrupted/old data, not a valid baseline)
+            const baseline = stored.lastTotal;
+            todaySteps = (baseline !== undefined && baseline > 0)
+                ? Math.max(0, currentTotal - baseline)
+                : 0;
         } else if (stored.lastTotal !== undefined) {
             const diff = currentTotal - stored.lastTotal;
             if (diff > 0) {
