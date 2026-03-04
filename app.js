@@ -6084,4 +6084,15 @@ window.syncHealthConnectSteps = syncHealthConnectSteps;
 // Expose for manual refresh button (if needed)
 window.syncHealthConnectSteps = syncHealthConnectSteps;
 
+// Fix Android WebView layout after orientation change (landscape → portrait)
+window.addEventListener('orientationchange', function() {
+    setTimeout(function() {
+        const vp = document.querySelector('meta[name=viewport]');
+        if (vp) {
+            vp.setAttribute('content', 'width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no');
+        }
+        window.scrollTo(0, 0);
+    }, 300);
+});
+
 document.addEventListener('DOMContentLoaded', init);
