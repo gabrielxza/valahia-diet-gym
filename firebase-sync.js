@@ -88,11 +88,9 @@ async function handleFirebaseSignIn(user) {
 
     alert(`✅ Cloud Sync attivato!\n\n📧 Account: ${user.email}\n\n🔄 I tuoi dati saranno sincronizzati su tutti i dispositivi!`);
 
-    console.log('🔷 handleFirebaseSignIn: calling updateCloudSyncUI, lastSyncTime=', lastSyncTime);
     if (typeof window.updateCloudSyncUI === 'function') {
         window.updateCloudSyncUI(true, user.email, lastSyncTime);
     }
-    console.log('🔷 handleFirebaseSignIn: done');
 }
 
 // Controlla se già loggato

@@ -3917,13 +3917,12 @@ window.disableCloudSync = async function() {
 };
 
 window.updateCloudSyncUI = function(enabled, userEmail = null, lastSync = null) {
-    console.log('🔶 updateCloudSyncUI called:', enabled, userEmail, lastSync, new Error().stack.split('\n')[1]);
     const btn = document.getElementById('cloud-sync-btn');
     const status = document.getElementById('cloud-sync-status');
     const emailSpan = document.getElementById('cloud-user-email');
     const lastSyncSpan = document.getElementById('cloud-last-sync');
 
-    if (!btn || !status) { console.warn('🔶 updateCloudSyncUI: btn/status not found'); return; }
+    if (!btn || !status) return;
 
     if (enabled) {
         btn.style.display = 'none';
