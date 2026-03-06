@@ -4033,14 +4033,16 @@ window.updateCloudSyncUI = function(enabled, userEmail = null, lastSync = null) 
         btn.style.display = 'none';
         status.style.display = 'block';
 
-        if (userEmail && emailSpan) {
-            emailSpan.textContent = userEmail;
+        // Mostra profilo attivo, non l'email Google condivisa
+        const userNames = { gabriel: 'Gabriel', cristina: 'Cristina', alex: 'Alex', diana: 'Diana' };
+        if (emailSpan) {
+            emailSpan.textContent = `${userNames[currentUser] || currentUser}`;
         }
 
         if (lastSync && lastSyncSpan) {
             lastSyncSpan.textContent = new Date(lastSync).toLocaleString('it-IT');
         } else if (lastSyncSpan) {
-            lastSyncSpan.textContent = 'In corso...';
+            lastSyncSpan.textContent = 'Mai sincronizzato';
         }
     } else {
         btn.style.display = 'block';
