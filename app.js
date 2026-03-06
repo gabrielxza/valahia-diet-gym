@@ -3001,12 +3001,12 @@ const DIET_PLANS = {
     },
     'intermittent': {
         name: '⏰ Digiuno Intermittente 16/8',
-        description: 'Finestra 12:00-20:00 - ~1700-1900 kcal/giorno',
+        description: 'Finestra 08:00-16:00 - ~1700-1900 kcal/giorno',
         macros: { carbs: '45-50%', protein: '25-30%', fat: '25-30%' },
         meals: {
             colazione: [
-                'DIGIUNO fino alle 12:00',
-                'Acqua/Tè/Caffè senza zucchero'
+                'PRIMA COLAZIONE alle 08:00 (fine digiuno)',
+                'Acqua/Tè/Caffè senza zucchero durante il digiuno'
             ],
             pranzo: [
                 '100g Pasta integrale',
@@ -3017,15 +3017,14 @@ const DIET_PLANS = {
                 '1 Mela'
             ],
             cena: [
-                '180g Pesce',
-                '150g Patate',
+                'ULTIMO PASTO entro le 16:00',
+                '180g Pesce o 150g Carne',
+                '150g Patate o riso',
                 '200g Insalata',
-                '100g Legumi',
-                '1 Frutto',
-                '30g Noci'
+                '100g Legumi'
             ],
             spuntini: [
-                '(Solo tra 12:00-20:00)',
+                '(Solo tra 08:00-16:00)',
                 '150g Yogurt greco',
                 '1 Frutto',
                 '20g Mandorle'
