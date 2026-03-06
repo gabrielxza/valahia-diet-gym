@@ -3119,12 +3119,61 @@ function loadSelectedDiet() {
                 </ul>
             </div>
         </div>
+        <button onclick="confirmDietPlan()" style="width:100%;margin-top:16px;padding:14px;background:#4CAF50;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;">✅ Ho mangiato come previsto oggi</button>
     `;
 }
 
 function showDietModal() {
     document.getElementById('modal-diet').style.display = 'flex';
 }
+
+// Calorie stimate per pasto per ogni dieta
+const DIET_MEAL_CALORIES = {
+    'mediterranea': { colazione: 380, pranzo: 650, cena: 650, spuntini: 220 },
+    'lowcarb':      { colazione: 420, pranzo: 600, cena: 600, spuntini: 180 },
+    'highprotein':  { colazione: 450, pranzo: 700, cena: 700, spuntini: 250 },
+    'vegetariana':  { colazione: 360, pranzo: 620, cena: 620, spuntini: 200 },
+    'intermittent': { colazione: 0,   pranzo: 800, cena: 800, spuntini: 200 },
+    'chetogenica':  { colazione: 400, pranzo: 650, cena: 650, spuntini: 200 }
+};
+
+window.confirmDietPlan = function() {
+    if (!selectedDiet) return;
+    const today = getTodayString();
+    const alreadyLogged = meals.some(m => m.date === today && m.source === 'diet_confirm');
+    if (alreadyLogged) {
+        alert('✅ Pasti di oggi già confermati!');
+        return;
+    }
+    const cal = DIET_MEAL_CALORIES[selectedDiet] || { colazione: 400, pranzo: 650, cena: 650, spuntini: 200 };
+    const diet = DIET_PLANS[selectedDiet];
+    const mealsToAdd = [
+        { type: 'colazione', desc: `Colazione - ${diet.name}`, calories: cal.colazione },
+        { type: 'pranzo',    desc: `Pranzo - ${diet.name}`,    calories: cal.pranzo },
+        { type: 'cena',      desc: `Cena - ${diet.name}`,      calories: cal.cena },
+        { type: 'spuntino',  desc: `Spuntini - ${diet.name}`,  calories: cal.spuntini }
+    ];
+    mealsToAdd.forEach(m => {
+        if (m.calories > 0) {
+            meals.push({
+                id: Date.now().toString() + m.type,
+                date: today,
+                type: m.type,
+                description: m.desc,
+                calories: m.calories,
+                source: 'diet_confirm',
+                timestamp: new Date().toISOString()
+            });
+        }
+    });
+    saveData();
+    loadTodayMeals();
+    loadTodayCalories();
+    updateMacros();
+    updateCaloriesChart();
+    const total = Object.values(cal).reduce((s, v) => s + v, 0);
+    alert(`✅ Registrati ${total} kcal per oggi!\n\nIl grafico deficit calorico si aggiornerà.`);
+};
 
 // ===========================
 // ADAPTIVE SYSTEM - TODAY'S PLAN
