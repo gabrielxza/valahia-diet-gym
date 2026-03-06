@@ -4378,19 +4378,19 @@ function playTimerSound() {
 // ========================================
 
 function updatePerformanceMetrics() {
-    const last7Days = [];
+    const last7DaysISO = [];
     const today = new Date();
     for (let i = 6; i >= 0; i--) {
         const date = new Date(today);
         date.setDate(date.getDate() - i);
-        last7Days.push(formatDate(date));
+        last7DaysISO.push(date.toISOString().split('T')[0]);
     }
 
     // Calculate total volume (kg lifted)
     let totalVolume = 0;
     let totalWorkouts = 0;
 
-    last7Days.forEach(date => {
+    last7DaysISO.forEach(date => {
         const activities = getActivitiesByDate(date);
         activities.forEach(activity => {
             // Extract sets x reps x weight from description
@@ -5173,18 +5173,20 @@ function updateCaloriesChart() {
     const ctx = document.getElementById('caloriesChart');
     if (!ctx) return;
 
-    const last7Days = [];
+    const last7DaysISO = [];
+    const last7DaysLabels = [];
     const today = new Date();
     for (let i = 6; i >= 0; i--) {
         const date = new Date(today);
         date.setDate(date.getDate() - i);
-        last7Days.push(formatDate(date));
+        last7DaysISO.push(date.toISOString().split('T')[0]);
+        last7DaysLabels.push(date.toLocaleDateString('it-IT', { weekday: 'short' }));
     }
 
     const intakeData = [];
     const burnedData = [];
 
-    last7Days.forEach(date => {
+    last7DaysISO.forEach(date => {
         const meals = getMealsByDate(date);
         const activities = getActivitiesByDate(date);
 
@@ -5202,10 +5204,7 @@ function updateCaloriesChart() {
     caloriesChartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: last7Days.map(date => {
-                const d = new Date(date.split('/').reverse().join('-'));
-                return d.toLocaleDateString('it-IT', { weekday: 'short' });
-            }),
+            labels: last7DaysLabels,
             datasets: [
                 {
                     label: 'Calorie Intake',
@@ -5278,17 +5277,19 @@ function updateActivityChart() {
     if (!ctx) return;
 
     const last7Days = [];
+    const last7DaysISO = [];
     const today = new Date();
     for (let i = 6; i >= 0; i--) {
         const date = new Date(today);
         date.setDate(date.getDate() - i);
-        last7Days.push(formatDate(date));
+        last7Days.push(date.toLocaleDateString('it-IT', { weekday: 'short' }));
+        last7DaysISO.push(date.toISOString().split('T')[0]); // YYYY-MM-DD
     }
 
     const activityMinutes = [];
 
-    last7Days.forEach(date => {
-        const dayActivities = getActivitiesByDate(date);
+    last7DaysISO.forEach(isoDate => {
+        const dayActivities = getActivitiesByDate(isoDate);
         const totalMinutes = dayActivities.reduce((sum, act) => {
             return sum + (parseInt(act.duration) || 0);
         }, 0);
@@ -5302,10 +5303,7 @@ function updateActivityChart() {
     activityChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: last7Days.map(date => {
-                const d = new Date(date.split('/').reverse().join('-'));
-                return d.toLocaleDateString('it-IT', { weekday: 'short' });
-            }),
+            labels: last7Days,
             datasets: [
                 {
                     label: 'Minuti di Attività',
