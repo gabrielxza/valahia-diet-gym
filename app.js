@@ -2711,6 +2711,12 @@ function displayTodaysWorkout() {
 
             <!-- Azioni -->
             <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 24px;">
+                ${workoutTracking.completedWorkouts.some(w => w.date === getTodayString()) ? `
+                <button disabled style="background: rgba(76,175,80,0.25); color: #4CAF50; border: 2px solid #4CAF50;
+                               padding: 16px 32px; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: default; opacity: 0.85;">
+                    🏆 Allenamento Completato Oggi!
+                </button>
+                ` : `
                 <button onclick="completeWorkout()"
                         style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; border: none;
                                padding: 16px 32px; border-radius: 12px; font-size: 16px; font-weight: bold;
@@ -2719,6 +2725,7 @@ function displayTodaysWorkout() {
                         onmouseout="this.style.transform='scale(1)'">
                     ✅ Completa Allenamento
                 </button>
+                `}
                 <button onclick="skipToNextDay()"
                         style="background: var(--bg-tertiary); color: var(--text-primary); border: 2px solid var(--border-color);
                                padding: 16px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer;">
@@ -3119,7 +3126,10 @@ function loadSelectedDiet() {
                 </ul>
             </div>
         </div>
-        <button onclick="confirmDietPlan()" style="width:100%;margin-top:16px;padding:14px;background:#4CAF50;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;">✅ Ho mangiato come previsto oggi</button>
+        ${meals.some(m => m.date === getTodayString() && m.source === 'diet_confirm') ?
+            `<button disabled style="width:100%;margin-top:16px;padding:14px;background:rgba(76,175,80,0.2);color:#4CAF50;border:2px solid #4CAF50;border-radius:10px;font-size:15px;font-weight:700;cursor:default;">🍽️ Pasti Confermati Oggi ✓</button>` :
+            `<button onclick="confirmDietPlan()" style="width:100%;margin-top:16px;padding:14px;background:#4CAF50;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;">✅ Ho mangiato come previsto oggi</button>`
+        }
     `;
 }
 
@@ -3171,6 +3181,7 @@ window.confirmDietPlan = function() {
     loadTodayCalories();
     updateMacros();
     updateCaloriesChart();
+    loadSelectedDiet(); // aggiorna stato pulsante
     const total = Object.values(cal).reduce((s, v) => s + v, 0);
     alert(`✅ Registrati ${total} kcal per oggi!\n\nIl grafico deficit calorico si aggiornerà.`);
 };
