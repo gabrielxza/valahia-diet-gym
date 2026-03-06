@@ -198,6 +198,30 @@ function completeWorkout() {
     workoutTracking.lastWorkoutDate = today;
     workoutTracking.currentDayIndex++;
 
+    // Salva anche come attività fisica per statistiche e grafici
+    const todayData = getTodaysWorkout();
+    const workout = todayData?.workout;
+    const exerciseCount = workout?.exercises?.length || 6;
+    const estimatedDuration = workout?.rest ? 0 : Math.max(30, exerciseCount * 7);
+    const workoutName = workout?.name || 'Allenamento';
+    const kcal = Math.round(estimatedDuration * 7); // ~7 kcal/min media
+
+    if (estimatedDuration > 0) {
+        const alreadyLogged = activities.some(a => a.date === today && a.source === 'workout_complete');
+        if (!alreadyLogged) {
+            activities.push({
+                id: Date.now().toString(),
+                date: today,
+                type: 'palestra',
+                duration: estimatedDuration,
+                calories: kcal,
+                notes: workoutName,
+                source: 'workout_complete',
+                timestamp: new Date().toISOString()
+            });
+        }
+    }
+
     const program = getCurrentProgramData();
     if (!program) {
         saveData();
@@ -230,9 +254,11 @@ function completeWorkout() {
     }
 
     saveData();
-    displayTodaysWorkout(); // Ricarica la UI
+    displayTodaysWorkout();
+    loadTodayActivities();
+    loadTodayActivityStats();
+    updateActivityChart();
 
-    // Confetti e notifica
     alert('✅ Allenamento completato! 💪');
 }
 
