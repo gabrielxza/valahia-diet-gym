@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Valahia Diet Gym</string>
+    <string name="title_activity_main">Valahia Diet Gym</string>
+    <string name="package_name">com.valahia.dietgym</string>
+    <string name="custom_url_scheme">com.valahia.dietgym</string>
+</resources>

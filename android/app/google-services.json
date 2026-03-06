@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "939145249574",
+    "project_id": "valahia-diet-gym-11747",
+    "storage_bucket": "valahia-diet-gym-11747.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:939145249574:android:50be51d39dffbcad6937e7",
+        "android_client_info": {
+          "package_name": "com.valahia.dietgym"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "939145249574-06ghna5ac1tco971s9ucs8lo21k78k4b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.valahia.dietgym",
+            "certificate_hash": "a1f6510ff7e6ab7a0f27fe6e5c36f1a4890dae6f"
+          }
+        },
+        {
+          "client_id": "939145249574-hu8g3a4lrgjtdm9g5bqt7p93emj6ibf4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD6IB6eoVuxT-O9D544PZ3F2kCAzG-COJU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "939145249574-hu8g3a4lrgjtdm9g5bqt7p93emj6ibf4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

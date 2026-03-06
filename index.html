@@ -82,9 +82,10 @@
         <div id="today-header" style="height:0;overflow:hidden;"></div>
         <!-- Dashboard Cards -->
         <div class="dashboard">
-            <div class="card card-today">
-                <h2>📅 Oggi</h2>
+            <div class="card card-today" onclick="openMealsDatePicker()" style="cursor:pointer;" title="Clicca per vedere i pasti di un altro giorno">
+                <h2>📅 <span id="card-today-label">Oggi</span></h2>
                 <p id="current-date" class="date-display"></p>
+                <input type="date" id="meals-date-picker" style="display:none;" onchange="setMealsDate(this.value)">
             </div>
 
             <div class="card card-weight">
@@ -214,6 +215,11 @@
             <div class="section-header">
                 <h2>🍽️ Pasti di Oggi</h2>
                 <button onclick="showAddMealModal()" class="btn-primary">➕ Aggiungi Pasto</button>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:12px;">
+                <button onclick="navigateMealsDay(-1)" style="background:none;border:1px solid #444;color:#ccc;border-radius:8px;padding:4px 12px;cursor:pointer;font-size:18px;">‹</button>
+                <span id="meals-date-label" style="font-size:14px;color:#aaa;min-width:90px;text-align:center;"></span>
+                <button id="meals-next-btn" onclick="navigateMealsDay(1)" style="background:none;border:1px solid #444;color:#ccc;border-radius:8px;padding:4px 12px;cursor:pointer;font-size:18px;">›</button>
             </div>
 
             <div id="meals-list" class="meals-list">

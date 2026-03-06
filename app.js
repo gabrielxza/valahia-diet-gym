@@ -316,14 +316,55 @@ function closeApp() {
 // ===========================
 // MEALS MANAGEMENT
 // ===========================
+
+let mealsViewDate = getTodayString(); // currently viewed date in meals section
+
+function openMealsDatePicker() {
+    const picker = document.getElementById('meals-date-picker');
+    if (!picker) return;
+    picker.max = getTodayString();
+    picker.value = mealsViewDate;
+    picker.showPicker ? picker.showPicker() : picker.click();
+}
+
+window.setMealsDate = function(dateStr) {
+    if (!dateStr || dateStr > getTodayString()) return;
+    mealsViewDate = dateStr;
+    loadTodayMeals();
+    // Scrolla alla sezione pasti
+    const section = document.querySelector('.meals-section');
+    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+function navigateMealsDay(delta) {
+    const d = new Date(mealsViewDate);
+    d.setDate(d.getDate() + delta);
+    const newDate = d.toISOString().split('T')[0];
+    if (newDate > getTodayString()) return; // can't go to future
+    mealsViewDate = newDate;
+    loadTodayMeals();
+}
+
 function loadTodayMeals() {
     const today = getTodayString();
-    const todayMeals = meals.filter(m => m.date === today);
+    const viewDate = mealsViewDate || today;
+    const viewMeals = meals.filter(m => m.date === viewDate);
+
+    // Update date navigator label
+    const label = document.getElementById('meals-date-label');
+    const nextBtn = document.getElementById('meals-next-btn');
+    const dateLabel = viewDate === today ? 'Oggi' : new Date(viewDate).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    if (label) label.textContent = dateLabel;
+    if (nextBtn) nextBtn.disabled = (viewDate === today);
+
+    // Aggiorna label card "Oggi" in alto
+    const cardTodayLabel = document.getElementById('card-today-label');
+    if (cardTodayLabel) cardTodayLabel.textContent = viewDate === today ? 'Oggi' : dateLabel;
 
     const mealsList = document.getElementById('meals-list');
 
-    if (todayMeals.length === 0) {
-        mealsList.innerHTML = '<p class="empty-state">Nessun pasto registrato oggi</p>';
+    if (viewMeals.length === 0) {
+        mealsList.innerHTML = `<p class="empty-state">Nessun pasto registrato ${viewDate === today ? 'oggi' : 'in questo giorno'}</p>`;
         return;
     }
 
@@ -334,10 +375,10 @@ function loadTodayMeals() {
         'spuntino': '🍎'
     };
 
-    mealsList.innerHTML = todayMeals.map(meal => `
+    mealsList.innerHTML = viewMeals.map(meal => `
         <div class="meal-item">
             <div class="meal-info">
-                <h3>${mealIcons[meal.type]} ${meal.type.charAt(0).toUpperCase() + meal.type.slice(1)}</h3>
+                <h3>${mealIcons[meal.type] || '🍽️'} ${meal.type.charAt(0).toUpperCase() + meal.type.slice(1)}</h3>
                 <p>${meal.description}</p>
                 ${meal.calories ? `<span class="meal-calories">${meal.calories} kcal</span>` : ''}
             </div>
@@ -373,7 +414,7 @@ document.getElementById('form-add-meal').addEventListener('submit', (e) => {
 
     const meal = {
         id: Date.now().toString(),
-        date: getTodayString(),
+        date: mealsViewDate || getTodayString(),
         type: document.getElementById('meal-type').value,
         description: document.getElementById('meal-description').value,
         calories: document.getElementById('meal-calories').value || 0,
@@ -398,6 +439,7 @@ function deleteMeal(mealId) {
         saveData();
         loadTodayMeals();
         loadTodayCalories();
+        if (typeof loadSelectedDiet === 'function') loadSelectedDiet();
     }
 }
 
@@ -4281,6 +4323,7 @@ function init() {
     document.getElementById('weight-date').valueAsDate = new Date();
 
     // Load data
+    mealsViewDate = getTodayString(); // reset to today on init
     loadTodayMeals();
     loadTodayCalories();
     loadTodayActivities();
