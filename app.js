@@ -3164,17 +3164,15 @@ window.confirmDietPlan = function() {
         { type: 'spuntino',  desc: `Spuntini - ${diet.name}`,  calories: cal.spuntini }
     ];
     mealsToAdd.forEach(m => {
-        if (m.calories > 0) {
-            meals.push({
-                id: Date.now().toString() + m.type,
-                date: today,
-                type: m.type,
-                description: m.desc,
-                calories: m.calories,
-                source: 'diet_confirm',
-                timestamp: new Date().toISOString()
-            });
-        }
+        meals.push({
+            id: Date.now().toString() + m.type,
+            date: today,
+            type: m.type,
+            description: m.calories === 0 ? `${m.desc} (digiuno)` : m.desc,
+            calories: m.calories,
+            source: 'diet_confirm',
+            timestamp: new Date().toISOString()
+        });
     });
     saveData();
     loadTodayMeals();
