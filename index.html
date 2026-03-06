@@ -82,10 +82,11 @@
         <div id="today-header" style="height:0;overflow:hidden;"></div>
         <!-- Dashboard Cards -->
         <div class="dashboard">
-            <div class="card card-today" onclick="openMealsDatePicker()" style="cursor:pointer;" title="Clicca per vedere i pasti di un altro giorno">
-                <h2>📅 <span id="card-today-label">Oggi</span></h2>
+            <div class="card card-today" onclick="openDayPickerFromCard()" style="cursor:pointer;" title="Clicca per vedere un giorno precedente">
+                <h2>📅 Oggi</h2>
                 <p id="current-date" class="date-display"></p>
-                <input type="date" id="meals-date-picker" style="display:none;" onchange="setMealsDate(this.value)">
+                <p style="font-size:11px;color:#888;margin:4px 0 0;">📖 Storico giorni</p>
+                <input type="date" id="day-view-picker" style="display:none;" onchange="openDayView(this.value)">
             </div>
 
             <div class="card card-weight">
@@ -216,12 +217,6 @@
                 <h2>🍽️ Pasti di Oggi</h2>
                 <button onclick="showAddMealModal()" class="btn-primary">➕ Aggiungi Pasto</button>
             </div>
-            <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:12px;">
-                <button onclick="navigateMealsDay(-1)" style="background:none;border:1px solid #444;color:#ccc;border-radius:8px;padding:4px 12px;cursor:pointer;font-size:18px;">‹</button>
-                <span id="meals-date-label" style="font-size:14px;color:#aaa;min-width:90px;text-align:center;"></span>
-                <button id="meals-next-btn" onclick="navigateMealsDay(1)" style="background:none;border:1px solid #444;color:#ccc;border-radius:8px;padding:4px 12px;cursor:pointer;font-size:18px;">›</button>
-            </div>
-
             <div id="meals-list" class="meals-list">
                 <p class="empty-state">Nessun pasto registrato oggi</p>
             </div>
@@ -1384,6 +1379,21 @@
             }
         });
     </script>
+
+    <!-- Modal: Day View -->
+    <div id="modal-day-view" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; backdrop-filter:blur(10px); overflow-y:auto;">
+        <div style="max-width:600px; margin:40px auto 80px; background:var(--bg-primary); border-radius:20px; padding:24px; box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <button onclick="shiftDayView(-1)" style="background:none;border:1px solid #444;color:#ccc;border-radius:8px;padding:4px 12px;cursor:pointer;font-size:18px;">‹</button>
+                    <h2 id="day-view-title" style="margin:0; font-size:20px; color:var(--text-primary);"></h2>
+                    <button id="day-view-next-btn" onclick="shiftDayView(1)" style="background:none;border:1px solid #444;color:#ccc;border-radius:8px;padding:4px 12px;cursor:pointer;font-size:18px;">›</button>
+                </div>
+                <button onclick="closeDayView()" style="background:none;border:none;font-size:28px;cursor:pointer;color:var(--text-primary);">×</button>
+            </div>
+            <div id="day-view-content"></div>
+        </div>
+    </div>
 
     <!-- Modal Change Program -->
     <div id="modal-change-program" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10000; backdrop-filter: blur(10px); overflow-y: auto;">

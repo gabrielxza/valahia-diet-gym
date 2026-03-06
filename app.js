@@ -317,65 +317,164 @@ function closeApp() {
 // MEALS MANAGEMENT
 // ===========================
 
-let mealsViewDate = getTodayString(); // currently viewed date in meals section
+let mealsViewDate = getTodayString();
 
-function openMealsDatePicker() {
-    const picker = document.getElementById('meals-date-picker');
+// ===========================
+// DAY VIEW MODAL
+// ===========================
+
+let dayViewDate = getTodayString();
+
+function openDayPickerFromCard() {
+    const picker = document.getElementById('day-view-picker');
     if (!picker) return;
     picker.max = getTodayString();
-    picker.value = mealsViewDate;
+    picker.value = getTodayString();
     picker.showPicker ? picker.showPicker() : picker.click();
 }
 
-window.setMealsDate = function(dateStr) {
-    if (!dateStr || dateStr > getTodayString()) return;
-    mealsViewDate = dateStr;
-    loadTodayMeals();
-    // Scrolla alla sezione pasti
-    const section = document.querySelector('.meals-section');
-    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+window.openDayView = function(dateStr) {
+    if (!dateStr) return;
+    dayViewDate = dateStr;
+    renderDayView();
+    document.getElementById('modal-day-view').style.display = 'block';
 };
+
+window.closeDayView = function() {
+    document.getElementById('modal-day-view').style.display = 'none';
+};
+
+window.shiftDayView = function(delta) {
+    const d = new Date(dayViewDate);
+    d.setDate(d.getDate() + delta);
+    const newDate = d.toISOString().split('T')[0];
+    if (newDate > getTodayString()) return;
+    dayViewDate = newDate;
+    renderDayView();
+};
+
+function renderDayView() {
+    const today = getTodayString();
+    const d = dayViewDate;
+    const isToday = d === today;
+
+    // Title
+    const titleEl = document.getElementById('day-view-title');
+    if (titleEl) {
+        if (isToday) titleEl.textContent = '📅 Oggi';
+        else {
+            const dt = new Date(d);
+            titleEl.textContent = '📅 ' + dt.toLocaleDateString('it-IT', { weekday: 'long', day: '2-digit', month: 'long' });
+        }
+    }
+    const nextBtn = document.getElementById('day-view-next-btn');
+    if (nextBtn) nextBtn.disabled = isToday;
+
+    // Data
+    const dayMeals = meals.filter(m => m.date === d);
+    const dayActivities = activities.filter(a => a.date === d);
+    const dayWeight = weights.filter(w => w.date === d).sort((a, b) => b.timestamp?.localeCompare(a.timestamp || ''))[0];
+    const daySteps = (typeof dailySteps !== 'undefined' && dailySteps[d]) ? dailySteps[d] : null;
+    const dayWorkout = (typeof workoutTracking !== 'undefined' && workoutTracking.completedWorkouts)
+        ? workoutTracking.completedWorkouts.filter(w => w.date === d)
+        : [];
+    const totalCal = dayMeals.reduce((s, m) => s + (parseInt(m.calories) || 0), 0);
+    const totalActCal = dayActivities.reduce((s, a) => s + (parseInt(a.calories) || 0), 0);
+
+    const mealIcons = { colazione: '🥐', pranzo: '🍝', cena: '🍖', spuntino: '🍎' };
+
+    let html = '';
+
+    // Riepilogo numerico
+    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">`;
+    html += `<div style="background:var(--bg-secondary);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:#FF9800;">${totalCal}</div>
+        <div style="font-size:12px;color:#888;">kcal introdotte</div></div>`;
+    html += `<div style="background:var(--bg-secondary);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:#4CAF50;">${totalActCal}</div>
+        <div style="font-size:12px;color:#888;">kcal bruciate</div></div>`;
+    if (dayWeight) {
+        html += `<div style="background:var(--bg-secondary);border-radius:12px;padding:12px;text-align:center;">
+            <div style="font-size:22px;font-weight:700;color:#2196F3;">${dayWeight.weight} kg</div>
+            <div style="font-size:12px;color:#888;">peso</div></div>`;
+    }
+    if (daySteps) {
+        html += `<div style="background:var(--bg-secondary);border-radius:12px;padding:12px;text-align:center;">
+            <div style="font-size:22px;font-weight:700;color:#9C27B0;">${daySteps.toLocaleString()}</div>
+            <div style="font-size:12px;color:#888;">passi</div></div>`;
+    }
+    html += `</div>`;
+
+    // Pasti
+    html += `<h3 style="color:var(--text-primary);margin:16px 0 8px;">🍽️ Pasti</h3>`;
+    if (dayMeals.length === 0) {
+        html += `<p style="color:#666;font-size:14px;">Nessun pasto registrato</p>`;
+    } else {
+        dayMeals.forEach(m => {
+            html += `<div style="background:var(--bg-secondary);border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <div style="font-weight:600;">${mealIcons[m.type] || '🍽️'} ${m.type.charAt(0).toUpperCase() + m.type.slice(1)}</div>
+                    <div style="font-size:13px;color:#aaa;">${m.description}</div>
+                </div>
+                <div style="font-weight:700;color:#FF9800;white-space:nowrap;">${m.calories ? m.calories + ' kcal' : ''}</div>
+            </div>`;
+        });
+    }
+
+    // Allenamenti completati
+    if (dayWorkout.length > 0) {
+        html += `<h3 style="color:var(--text-primary);margin:16px 0 8px;">💪 Allenamento</h3>`;
+        dayWorkout.forEach(w => {
+            html += `<div style="background:rgba(76,175,80,0.15);border:1px solid #4CAF50;border-radius:10px;padding:10px 14px;margin-bottom:8px;">
+                <div style="font-weight:600;color:#4CAF50;">✅ ${w.program || 'Allenamento'}</div>
+                ${w.dayIndex !== undefined ? `<div style="font-size:13px;color:#aaa;">Giorno ${w.dayIndex + 1}</div>` : ''}
+            </div>`;
+        });
+    }
+
+    // Attività fisica
+    if (dayActivities.length > 0) {
+        html += `<h3 style="color:var(--text-primary);margin:16px 0 8px;">🏃 Attività Fisica</h3>`;
+        dayActivities.forEach(a => {
+            html += `<div style="background:var(--bg-secondary);border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <div style="font-weight:600;">${a.type}</div>
+                    <div style="font-size:13px;color:#aaa;">${a.duration} min · ${a.intensity || ''}</div>
+                </div>
+                <div style="font-weight:700;color:#4CAF50;white-space:nowrap;">${a.calories ? a.calories + ' kcal' : ''}</div>
+            </div>`;
+        });
+    }
+
+    if (dayMeals.length === 0 && dayActivities.length === 0 && dayWorkout.length === 0 && !dayWeight && !daySteps) {
+        html = `<p style="color:#666;text-align:center;padding:40px 0;">Nessun dato registrato per questo giorno</p>`;
+    }
+
+    document.getElementById('day-view-content').innerHTML = html;
+}
 
 function navigateMealsDay(delta) {
     const d = new Date(mealsViewDate);
     d.setDate(d.getDate() + delta);
     const newDate = d.toISOString().split('T')[0];
-    if (newDate > getTodayString()) return; // can't go to future
+    if (newDate > getTodayString()) return;
     mealsViewDate = newDate;
     loadTodayMeals();
 }
 
 function loadTodayMeals() {
     const today = getTodayString();
-    const viewDate = mealsViewDate || today;
-    const viewMeals = meals.filter(m => m.date === viewDate);
-
-    // Update date navigator label
-    const label = document.getElementById('meals-date-label');
-    const nextBtn = document.getElementById('meals-next-btn');
-    const dateLabel = viewDate === today ? 'Oggi' : new Date(viewDate).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit' });
-    if (label) label.textContent = dateLabel;
-    if (nextBtn) nextBtn.disabled = (viewDate === today);
-
-    // Aggiorna label card "Oggi" in alto
-    const cardTodayLabel = document.getElementById('card-today-label');
-    if (cardTodayLabel) cardTodayLabel.textContent = viewDate === today ? 'Oggi' : dateLabel;
-
+    const todayMeals = meals.filter(m => m.date === today);
     const mealsList = document.getElementById('meals-list');
 
-    if (viewMeals.length === 0) {
-        mealsList.innerHTML = `<p class="empty-state">Nessun pasto registrato ${viewDate === today ? 'oggi' : 'in questo giorno'}</p>`;
+    if (todayMeals.length === 0) {
+        mealsList.innerHTML = '<p class="empty-state">Nessun pasto registrato oggi</p>';
         return;
     }
 
-    const mealIcons = {
-        'colazione': '🥐',
-        'pranzo': '🍝',
-        'cena': '🍖',
-        'spuntino': '🍎'
-    };
+    const mealIcons = { colazione: '🥐', pranzo: '🍝', cena: '🍖', spuntino: '🍎' };
 
-    mealsList.innerHTML = viewMeals.map(meal => `
+    mealsList.innerHTML = todayMeals.map(meal => `
         <div class="meal-item">
             <div class="meal-info">
                 <h3>${mealIcons[meal.type] || '🍽️'} ${meal.type.charAt(0).toUpperCase() + meal.type.slice(1)}</h3>
@@ -414,7 +513,7 @@ document.getElementById('form-add-meal').addEventListener('submit', (e) => {
 
     const meal = {
         id: Date.now().toString(),
-        date: mealsViewDate || getTodayString(),
+        date: getTodayString(),
         type: document.getElementById('meal-type').value,
         description: document.getElementById('meal-description').value,
         calories: document.getElementById('meal-calories').value || 0,
