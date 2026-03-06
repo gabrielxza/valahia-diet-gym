@@ -3133,10 +3133,20 @@ function loadTodaysPlan() {
         section._visibilityGuard.observe(section, { attributes: true, attributeFilter: ['style'] });
     }
 
-    if (!goal) {
-        section.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-muted);">⚙️ Imposta il tuo obiettivo per vedere il piano di oggi.</div>';
+    // Fallback: read goal from localStorage in case global variable was not updated
+    const currentGoal = goal || JSON.parse(localStorage.getItem(`goal_${currentUser}`) || 'null');
+    if (!currentGoal) {
+        // Show message WITHOUT destroying child DOM elements (they're needed when goal is set later)
+        const dayName = document.getElementById('today-day-name');
+        const workoutContent = document.getElementById('today-workout-content');
+        const mealsContent = document.getElementById('today-meals-content');
+        if (dayName) dayName.textContent = '';
+        if (workoutContent) workoutContent.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-muted);">⚙️ Imposta il tuo obiettivo per vedere il piano di oggi.</div>';
+        if (mealsContent) mealsContent.innerHTML = '';
         return;
     }
+    // Sync global variable if it was stale
+    if (!goal && currentGoal) goal = currentGoal;
 
     document.getElementById('today-plan-section').style.display = 'block';
     document.getElementById('today-day-name').textContent = getDayOfWeek();

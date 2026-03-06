@@ -183,25 +183,25 @@ async function loadDataFromFirestore() {
 
         // Carica sempre i dati dal cloud (fonte di verità)
 
-        // Aggiorna localStorage con dati cloud
-        if (cloudData.meals) localStorage.setItem(`meals_${currentUser}`, JSON.stringify(cloudData.meals));
-        if (cloudData.weights) localStorage.setItem(`weights_${currentUser}`, JSON.stringify(cloudData.weights));
-        if (cloudData.activities) localStorage.setItem(`activities_${currentUser}`, JSON.stringify(cloudData.activities));
+        // Aggiorna localStorage con dati cloud (solo se il campo cloud è non-vuoto)
+        if (cloudData.meals && cloudData.meals.length > 0) localStorage.setItem(`meals_${currentUser}`, JSON.stringify(cloudData.meals));
+        if (cloudData.weights && cloudData.weights.length > 0) localStorage.setItem(`weights_${currentUser}`, JSON.stringify(cloudData.weights));
+        if (cloudData.activities && cloudData.activities.length > 0) localStorage.setItem(`activities_${currentUser}`, JSON.stringify(cloudData.activities));
         if (cloudData.goal) localStorage.setItem(`goal_${currentUser}`, JSON.stringify(cloudData.goal));
         if (cloudData.selectedDiet) localStorage.setItem(`diet_${currentUser}`, cloudData.selectedDiet);
-        if (cloudData.dailyTracking) localStorage.setItem(`dailyTracking_${currentUser}`, JSON.stringify(cloudData.dailyTracking));
-        if (cloudData.dailySteps) localStorage.setItem(`dailySteps_${currentUser}`, JSON.stringify(cloudData.dailySteps));
-        if (cloudData.workoutTracking) localStorage.setItem(`workoutTracking_${currentUser}`, JSON.stringify(cloudData.workoutTracking));
+        if (cloudData.dailyTracking && Object.keys(cloudData.dailyTracking).length > 0) localStorage.setItem(`dailyTracking_${currentUser}`, JSON.stringify(cloudData.dailyTracking));
+        if (cloudData.dailySteps && Object.keys(cloudData.dailySteps).length > 0) localStorage.setItem(`dailySteps_${currentUser}`, JSON.stringify(cloudData.dailySteps));
+        if (cloudData.workoutTracking && cloudData.workoutTracking.completedWorkouts?.length > 0) localStorage.setItem(`workoutTracking_${currentUser}`, JSON.stringify(cloudData.workoutTracking));
 
-        // Aggiorna TUTTE le variabili globali in app.js
-        if (typeof meals !== 'undefined' && cloudData.meals) meals = cloudData.meals;
-        if (typeof weights !== 'undefined' && cloudData.weights) weights = cloudData.weights;
-        if (typeof activities !== 'undefined' && cloudData.activities) activities = cloudData.activities;
+        // Aggiorna TUTTE le variabili globali in app.js (solo se il campo cloud è non-vuoto)
+        if (typeof meals !== 'undefined' && cloudData.meals && cloudData.meals.length > 0) meals = cloudData.meals;
+        if (typeof weights !== 'undefined' && cloudData.weights && cloudData.weights.length > 0) weights = cloudData.weights;
+        if (typeof activities !== 'undefined' && cloudData.activities && cloudData.activities.length > 0) activities = cloudData.activities;
         if (typeof goal !== 'undefined' && cloudData.goal) goal = cloudData.goal;
         if (typeof selectedDiet !== 'undefined' && cloudData.selectedDiet) selectedDiet = cloudData.selectedDiet;
-        if (typeof dailyTracking !== 'undefined' && cloudData.dailyTracking) dailyTracking = cloudData.dailyTracking;
-        if (typeof dailySteps !== 'undefined' && cloudData.dailySteps) dailySteps = cloudData.dailySteps;
-        if (typeof workoutTracking !== 'undefined' && cloudData.workoutTracking) workoutTracking = cloudData.workoutTracking;
+        if (typeof dailyTracking !== 'undefined' && cloudData.dailyTracking && Object.keys(cloudData.dailyTracking).length > 0) dailyTracking = cloudData.dailyTracking;
+        if (typeof dailySteps !== 'undefined' && cloudData.dailySteps && Object.keys(cloudData.dailySteps).length > 0) dailySteps = cloudData.dailySteps;
+        if (typeof workoutTracking !== 'undefined' && cloudData.workoutTracking && cloudData.workoutTracking.completedWorkouts?.length > 0) workoutTracking = cloudData.workoutTracking;
 
         lastSyncTime = cloudData.lastUpdated?.toDate()?.toISOString() || new Date().toISOString();
         localStorage.setItem(`last_firebase_sync_${currentUser}`, lastSyncTime);
