@@ -751,48 +751,6 @@
             </div>
         </section>
 
-        <!-- Zepp/Amazfit Integration -->
-        <section class="zepp-section">
-            <h2>⌚ Integrazione Zepp (Amazfit)</h2>
-            <p style="color: var(--text-secondary); margin-bottom: 24px;">Sincronizza i tuoi orologi Amazfit</p>
-
-            <div class="zepp-card">
-                <div class="zepp-status" id="zepp-status">
-                    <div class="zepp-icon">⌚</div>
-                    <div>
-                        <div class="zepp-status-text">Non Connesso</div>
-                        <div class="zepp-status-detail">Collega il tuo orologio Amazfit per sincronizzare dati</div>
-                    </div>
-                </div>
-
-                <button onclick="connectZepp()" class="btn-primary" id="zepp-connect-btn">
-                    🔗 Connetti Zepp
-                </button>
-
-                <div class="zepp-features">
-                    <h4>📊 Dati Sincronizzati:</h4>
-                    <ul>
-                        <li>✅ Passi giornalieri</li>
-                        <li>✅ Frequenza cardiaca</li>
-                        <li>✅ Calorie bruciate</li>
-                        <li>✅ Qualità del sonno</li>
-                        <li>✅ Allenamenti registrati</li>
-                        <li>✅ SpO2 (saturazione ossigeno)</li>
-                    </ul>
-                </div>
-
-                <div class="zepp-manual-sync">
-                    <h4>📤 Sincronizzazione Manuale</h4>
-                    <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
-                        Esporta i dati da Zepp App e caricali qui
-                    </p>
-                    <button onclick="showZeppImportModal()" class="btn-secondary">
-                        📂 Importa da Zepp Export
-                    </button>
-                </div>
-            </div>
-        </section>
-
         <!-- Weekly Shopping List -->
         <section class="shopping-section">
             <h2>🛒 Lista Spesa Settimanale</h2>
@@ -807,69 +765,43 @@
                 <div class="shopping-categories">
                     <div class="shopping-category">
                         <div class="category-header">🥚 Proteine</div>
-                        <ul id="shopping-proteins" class="shopping-list">
-                            <li>Pollo petto: 1.5kg</li>
-                            <li>Uova: 12 pz</li>
-                            <li>Tonno in scatola: 4 scatolette</li>
-                            <li>Ricotta: 500g</li>
-                        </ul>
+                        <ul id="shopping-proteins" class="shopping-list"></ul>
+                        <button onclick="addShoppingItem('shopping-proteins')" style="background:none;border:none;cursor:pointer;color:#4CAF50;font-size:13px;padding:6px 4px;">➕ Aggiungi</button>
                     </div>
 
                     <div class="shopping-category">
                         <div class="category-header">🍚 Carboidrati</div>
-                        <ul id="shopping-carbs" class="shopping-list">
-                            <li>Riso integrale: 1kg</li>
-                            <li>Avena: 500g</li>
-                            <li>Pane integrale: 1 pacco</li>
-                            <li>Patate dolci: 1kg</li>
-                        </ul>
+                        <ul id="shopping-carbs" class="shopping-list"></ul>
+                        <button onclick="addShoppingItem('shopping-carbs')" style="background:none;border:none;cursor:pointer;color:#4CAF50;font-size:13px;padding:6px 4px;">➕ Aggiungi</button>
                     </div>
 
                     <div class="shopping-category">
                         <div class="category-header">🥑 Grassi Sani</div>
-                        <ul id="shopping-fats" class="shopping-list">
-                            <li>Olio EVO: 1 bottiglia</li>
-                            <li>Avocado: 2-3 pz</li>
-                            <li>Noci/Mandorle: 200g</li>
-                            <li>Burro arachidi: 1 barattolo</li>
-                        </ul>
+                        <ul id="shopping-fats" class="shopping-list"></ul>
+                        <button onclick="addShoppingItem('shopping-fats')" style="background:none;border:none;cursor:pointer;color:#4CAF50;font-size:13px;padding:6px 4px;">➕ Aggiungi</button>
                     </div>
 
                     <div class="shopping-category">
                         <div class="category-header">🥬 Verdure & Frutta</div>
-                        <ul id="shopping-veggies" class="shopping-list">
-                            <li>Broccoli: 500g</li>
-                            <li>Spinaci: 500g</li>
-                            <li>Pomodori: 1kg</li>
-                            <li>Banane: 6-8 pz</li>
-                            <li>Mele: 6 pz</li>
-                        </ul>
+                        <ul id="shopping-veggies" class="shopping-list"></ul>
+                        <button onclick="addShoppingItem('shopping-veggies')" style="background:none;border:none;cursor:pointer;color:#4CAF50;font-size:13px;padding:6px 4px;">➕ Aggiungi</button>
                     </div>
 
                     <div class="shopping-category">
                         <div class="category-header">💊 Integratori</div>
-                        <ul id="shopping-supplements" class="shopping-list">
-                            <li>Proteine whey: 1kg</li>
-                            <li>Creatina: 200g</li>
-                            <li>Multivitaminico</li>
-                            <li>Omega 3</li>
-                        </ul>
+                        <ul id="shopping-supplements" class="shopping-list"></ul>
+                        <button onclick="addShoppingItem('shopping-supplements')" style="background:none;border:none;cursor:pointer;color:#4CAF50;font-size:13px;padding:6px 4px;">➕ Aggiungi</button>
                     </div>
 
                     <div class="shopping-category">
                         <div class="category-header">🥛 Latticini & Altro</div>
-                        <ul id="shopping-misc" class="shopping-list">
-                            <li>Latte scremato: 2L</li>
-                            <li>Yogurt greco: 1kg</li>
-                            <li>Parmigiano: 200g</li>
-                            <li>Acqua minerale: 2 casse</li>
-                        </ul>
+                        <ul id="shopping-misc" class="shopping-list"></ul>
+                        <button onclick="addShoppingItem('shopping-misc')" style="background:none;border:none;cursor:pointer;color:#4CAF50;font-size:13px;padding:6px 4px;">➕ Aggiungi</button>
                     </div>
                 </div>
 
                 <div class="shopping-actions">
-                    <button onclick="printShoppingList()" class="btn-secondary">🖨️ Stampa Lista</button>
-                    <button onclick="shareShoppingList()" class="btn-secondary">📤 Condividi</button>
+                    <button onclick="shareShoppingList()" class="btn-primary">📱 Invia su WhatsApp</button>
                 </div>
             </div>
         </section>

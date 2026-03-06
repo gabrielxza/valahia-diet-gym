@@ -4237,6 +4237,7 @@ function init() {
     loadWaterIntake();
     updateMacros();
     updatePerformanceMetrics();
+    loadShoppingList();
 
     // Health Connect (Android native app only)
     initHealthConnect();
@@ -4541,7 +4542,6 @@ window.saveMeasurements = function(event) {
 
 function updateMacros() {
     const goal = getGoal();
-    if (!goal) return;
 
     const todayDate = formatDate(new Date());
     const meals = getMealsByDate(todayDate);
@@ -4558,13 +4558,14 @@ function updateMacros() {
             totalCarbs += meal.macros.carbs || 0;
             totalFats += meal.macros.fats || 0;
         }
-        totalCalories += meal.calories;
+        totalCalories += parseInt(meal.calories) || 0;
     });
 
-    // Calculate targets based on TDEE
-    const proteinTarget = Math.round((goal.tdee * 0.30) / 4); // 30% from protein (4 kcal/g)
-    const carbsTarget = Math.round((goal.tdee * 0.40) / 4);   // 40% from carbs (4 kcal/g)
-    const fatsTarget = Math.round((goal.tdee * 0.30) / 9);    // 30% from fats (9 kcal/g)
+    // Calculate targets based on TDEE (or defaults if no goal)
+    const tdee = goal ? goal.tdee : 2000;
+    const proteinTarget = Math.round((tdee * 0.30) / 4);
+    const carbsTarget = Math.round((tdee * 0.40) / 4);
+    const fatsTarget = Math.round((tdee * 0.30) / 9);
 
     // Update display
     document.getElementById('total-kcal-macros').textContent = totalCalories;
@@ -4624,6 +4625,86 @@ function drawDonutSegment(ctx, x, y, outerRadius, innerRadius, startAngle, endAn
     ctx.fillStyle = color;
     ctx.fill();
 }
+
+// ========================================
+// MACRO MEAL MODAL
+// ========================================
+
+window.showMacroModal = function() {
+    const existing = document.getElementById('modal-macro');
+    if (existing) existing.remove();
+    const html = `
+        <div id="modal-macro" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;">
+            <div style="background:var(--bg-secondary,#1a1a2e);border-radius:16px;padding:24px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto;">
+                <h3 style="margin:0 0 20px 0;">➕ Aggiungi Pasto con Macro</h3>
+                <form id="form-macro-meal" onsubmit="saveMacroMeal(event)">
+                    <div style="margin-bottom:12px;">
+                        <label style="display:block;margin-bottom:4px;font-size:14px;">Tipo Pasto</label>
+                        <select id="macro-meal-type" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border-color,#333);background:var(--bg-primary,#0f0f1a);color:var(--text-primary,#fff);">
+                            <option value="colazione">🌅 Colazione</option>
+                            <option value="pranzo">☀️ Pranzo</option>
+                            <option value="cena">🌙 Cena</option>
+                            <option value="spuntino">🍎 Spuntino</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <label style="display:block;margin-bottom:4px;font-size:14px;">Descrizione</label>
+                        <input type="text" id="macro-meal-desc" placeholder="es. Petto di pollo con riso" required style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border-color,#333);background:var(--bg-primary,#0f0f1a);color:var(--text-primary,#fff);box-sizing:border-box;">
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+                        <div>
+                            <label style="display:block;margin-bottom:4px;font-size:13px;">🥩 Proteine (g)</label>
+                            <input type="number" id="macro-protein" placeholder="30" min="0" step="1" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border-color,#333);background:var(--bg-primary,#0f0f1a);color:var(--text-primary,#fff);box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="display:block;margin-bottom:4px;font-size:13px;">🍚 Carboidrati (g)</label>
+                            <input type="number" id="macro-carbs" placeholder="50" min="0" step="1" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border-color,#333);background:var(--bg-primary,#0f0f1a);color:var(--text-primary,#fff);box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="display:block;margin-bottom:4px;font-size:13px;">🥑 Grassi (g)</label>
+                            <input type="number" id="macro-fats" placeholder="10" min="0" step="1" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border-color,#333);background:var(--bg-primary,#0f0f1a);color:var(--text-primary,#fff);box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label style="display:block;margin-bottom:4px;font-size:13px;">🔥 Calorie (opz.)</label>
+                            <input type="number" id="macro-calories" placeholder="auto" min="0" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border-color,#333);background:var(--bg-primary,#0f0f1a);color:var(--text-primary,#fff);box-sizing:border-box;">
+                        </div>
+                    </div>
+                    <small style="color:var(--text-secondary,#888);display:block;margin-bottom:16px;">💡 Calorie auto: prot×4 + carb×4 + grassi×9</small>
+                    <div style="display:flex;gap:10px;">
+                        <button type="submit" style="flex:1;padding:12px;background:#4CAF50;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;">✅ Salva</button>
+                        <button type="button" onclick="document.getElementById('modal-macro').remove()" style="flex:1;padding:12px;background:rgba(255,255,255,0.1);color:var(--text-primary,#fff);border:none;border-radius:8px;font-size:15px;cursor:pointer;">❌ Annulla</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+};
+
+window.saveMacroMeal = function(e) {
+    e.preventDefault();
+    const protein = parseFloat(document.getElementById('macro-protein').value) || 0;
+    const carbs = parseFloat(document.getElementById('macro-carbs').value) || 0;
+    const fats = parseFloat(document.getElementById('macro-fats').value) || 0;
+    const manualCal = parseFloat(document.getElementById('macro-calories').value) || 0;
+    const calories = manualCal || Math.round(protein * 4 + carbs * 4 + fats * 9);
+
+    const meal = {
+        id: Date.now().toString(),
+        date: getTodayString(),
+        type: document.getElementById('macro-meal-type').value,
+        description: document.getElementById('macro-meal-desc').value,
+        calories: calories,
+        macros: { protein, carbs, fats },
+        timestamp: new Date().toISOString()
+    };
+    meals.push(meal);
+    saveData();
+    document.getElementById('modal-macro').remove();
+    loadTodayMeals();
+    loadTodayCalories();
+    updateMacros();
+};
 
 // ========================================
 // 1RM CALCULATOR
@@ -4803,55 +4884,141 @@ window.resetWater = function() {
 // SHOPPING LIST
 // ========================================
 
-window.generateShoppingList = function() {
+const SHOPPING_DEFAULTS = {
+    'muscle-gain': {
+        proteins: ['Pollo petto: 2kg', 'Uova: 18 pz', 'Tonno: 6 scatolette', 'Carne rossa magra: 1kg', 'Salmone: 500g'],
+        carbs: ['Riso integrale: 2kg', 'Avena: 1kg', 'Pane integrale: 2 pacchi', 'Patate dolci: 2kg', 'Pasta integrale: 1kg'],
+        fats: ['Olio EVO: 1 bottiglia', 'Avocado: 4 pz', 'Noci/Mandorle: 300g', 'Burro arachidi: 1 barattolo'],
+        veggies: ['Broccoli: 500g', 'Spinaci: 500g', 'Pomodori: 1kg', 'Banane: 8 pz', 'Mele: 6 pz'],
+        supplements: ['Proteine whey: 2kg', 'Creatina: 200g', 'Multivitaminico', 'Omega 3'],
+        misc: ['Latte intero: 2L', 'Yogurt greco: 1kg', 'Parmigiano: 200g', 'Acqua minerale: 2 casse']
+    },
+    'default': {
+        proteins: ['Pollo petto: 1kg', 'Uova: 12 pz', 'Tonno: 4 scatolette', 'Ricotta magra: 500g'],
+        carbs: ['Riso integrale: 500g', 'Avena: 500g', 'Pane integrale: 1 pacco', 'Patate dolci: 1kg'],
+        fats: ['Olio EVO: 1 bottiglia', 'Avocado: 2 pz', 'Noci/Mandorle: 150g'],
+        veggies: ['Broccoli: 500g', 'Spinaci: 500g', 'Pomodori: 1kg', 'Zucchine: 500g', 'Mele: 6 pz'],
+        supplements: ['Proteine whey: 1kg', 'Multivitaminico', 'Omega 3'],
+        misc: ['Yogurt greco 0%: 1kg', 'Latte scremato: 1L', 'Acqua minerale: 2 casse']
+    }
+};
+
+const SHOPPING_ID_MAP = {
+    proteins: 'shopping-proteins',
+    carbs: 'shopping-carbs',
+    fats: 'shopping-fats',
+    veggies: 'shopping-veggies',
+    supplements: 'shopping-supplements',
+    misc: 'shopping-misc'
+};
+
+function renderShoppingCategory(listId, items) {
+    const ul = document.getElementById(listId);
+    if (!ul) return;
+    ul.innerHTML = items.map(item => `
+        <li style="display:flex;align-items:center;justify-content:space-between;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.05);">
+            <span onclick="toggleShoppingItem(this.closest('li'))" style="flex:1;cursor:pointer;" class="item-name">${item}</span>
+            <div style="display:flex;gap:4px;flex-shrink:0;">
+                <button onclick="editShoppingItem(this.closest('li'),'${listId}')" style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px 6px;opacity:0.7;">✏️</button>
+                <button onclick="removeShoppingItem(this.closest('li'),'${listId}')" style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px 6px;opacity:0.7;color:#f44336;">✕</button>
+            </div>
+        </li>
+    `).join('');
+}
+
+function saveShoppingList() {
+    const data = {};
+    Object.keys(SHOPPING_ID_MAP).forEach(cat => {
+        const ul = document.getElementById(SHOPPING_ID_MAP[cat]);
+        if (ul) data[cat] = Array.from(ul.querySelectorAll('.item-name')).map(s => s.textContent.trim());
+    });
+    localStorage.setItem(`shoppingList_${currentUser}`, JSON.stringify(data));
+}
+
+window.loadShoppingList = function() {
+    const saved = localStorage.getItem(`shoppingList_${currentUser}`);
     const goal = getGoal();
-    if (!goal) return;
-
-    // Customize based on goal type
-    const proteins = goal.type === 'muscle-gain'
-        ? ['Pollo petto: 2kg', 'Uova: 18 pz', 'Tonno: 6 scatolette', 'Carne rossa magra: 1kg', 'Salmone: 500g']
-        : ['Pollo petto: 1kg', 'Uova: 12 pz', 'Tonno: 4 scatolette', 'Ricotta: 500g'];
-
-    const carbs = goal.type === 'muscle-gain'
-        ? ['Riso integrale: 2kg', 'Avena: 1kg', 'Pane integrale: 2 pacchi', 'Patate dolci: 2kg', 'Pasta integrale: 1kg']
-        : ['Riso integrale: 500g', 'Avena: 500g', 'Pane integrale: 1 pacco', 'Patate dolci: 1kg'];
-
-    document.getElementById('shopping-proteins').innerHTML = proteins.map(item =>
-        `<li onclick="toggleChecked(this)">${item}</li>`
-    ).join('');
-
-    document.getElementById('shopping-carbs').innerHTML = carbs.map(item =>
-        `<li onclick="toggleChecked(this)">${item}</li>`
-    ).join('');
-
-    alert('✅ Lista spesa aggiornata in base al tuo obiettivo!');
+    const key = (goal && goal.type === 'muscle-gain') ? 'muscle-gain' : 'default';
+    const data = saved ? JSON.parse(saved) : SHOPPING_DEFAULTS[key];
+    Object.keys(SHOPPING_ID_MAP).forEach(cat => {
+        renderShoppingCategory(SHOPPING_ID_MAP[cat], data[cat] || []);
+    });
 };
 
-window.toggleChecked = function(element) {
-    element.classList.toggle('checked');
+window.generateShoppingList = function() {
+    if (!confirm('🔄 Resettare la lista ai valori predefiniti?')) return;
+    const goal = getGoal();
+    const key = (goal && goal.type === 'muscle-gain') ? 'muscle-gain' : 'default';
+    const defaults = SHOPPING_DEFAULTS[key];
+    Object.keys(SHOPPING_ID_MAP).forEach(cat => {
+        renderShoppingCategory(SHOPPING_ID_MAP[cat], defaults[cat] || []);
+    });
+    saveShoppingList();
 };
 
-window.printShoppingList = function() {
-    window.print();
+window.toggleShoppingItem = function(li) {
+    li.classList.toggle('checked');
+    const name = li.querySelector('.item-name');
+    if (li.classList.contains('checked')) {
+        li.style.opacity = '0.45';
+        name.style.textDecoration = 'line-through';
+    } else {
+        li.style.opacity = '';
+        name.style.textDecoration = '';
+    }
+};
+
+window.toggleChecked = function(el) { window.toggleShoppingItem(el); };
+
+window.editShoppingItem = function(li, listId) {
+    const span = li.querySelector('.item-name');
+    const current = span.textContent.trim();
+    const newVal = prompt('Modifica prodotto:', current);
+    if (newVal && newVal.trim() && newVal.trim() !== current) {
+        span.textContent = newVal.trim();
+        saveShoppingList();
+    }
+};
+
+window.removeShoppingItem = function(li) {
+    li.remove();
+    saveShoppingList();
+};
+
+window.addShoppingItem = function(listId) {
+    const newItem = prompt('Aggiungi prodotto (es. "Pollo: 1kg"):');
+    if (!newItem || !newItem.trim()) return;
+    const ul = document.getElementById(listId);
+    if (!ul) return;
+    const li = document.createElement('li');
+    li.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.05);';
+    li.innerHTML = `
+        <span onclick="toggleShoppingItem(this.closest('li'))" style="flex:1;cursor:pointer;" class="item-name">${newItem.trim()}</span>
+        <div style="display:flex;gap:4px;flex-shrink:0;">
+            <button onclick="editShoppingItem(this.closest('li'),'${listId}')" style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px 6px;opacity:0.7;">✏️</button>
+            <button onclick="removeShoppingItem(this.closest('li'),'${listId}')" style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px 6px;opacity:0.7;color:#f44336;">✕</button>
+        </div>
+    `;
+    ul.appendChild(li);
+    saveShoppingList();
 };
 
 window.shareShoppingList = function() {
-    const proteins = Array.from(document.querySelectorAll('#shopping-proteins li'))
-        .map(li => '- ' + li.textContent).join('\n');
-    const carbs = Array.from(document.querySelectorAll('#shopping-carbs li'))
-        .map(li => '- ' + li.textContent).join('\n');
-
-    const text = `🛒 LISTA SPESA VALAHIA DIET GYM\n\n🥚 PROTEINE:\n${proteins}\n\n🍚 CARBOIDRATI:\n${carbs}`;
-
-    if (navigator.share) {
-        navigator.share({
-            title: 'Lista Spesa Settimanale',
-            text: text
-        });
-    } else {
-        navigator.clipboard.writeText(text);
-        alert('✅ Lista copiata negli appunti!');
-    }
+    const categories = [
+        { id: 'shopping-proteins', label: '🥚 PROTEINE' },
+        { id: 'shopping-carbs', label: '🍚 CARBOIDRATI' },
+        { id: 'shopping-fats', label: '🥑 GRASSI SANI' },
+        { id: 'shopping-veggies', label: '🥬 VERDURE & FRUTTA' },
+        { id: 'shopping-supplements', label: '💊 INTEGRATORI' },
+        { id: 'shopping-misc', label: '🥛 LATTICINI & ALTRO' }
+    ];
+    let text = '🛒 LISTA SPESA SETTIMANALE\n━━━━━━━━━━━━━━━━\n\n';
+    categories.forEach(cat => {
+        const items = Array.from(document.querySelectorAll(`#${cat.id} .item-name`))
+            .map(s => '• ' + s.textContent.trim()).join('\n');
+        if (items) text += `${cat.label}:\n${items}\n\n`;
+    });
+    window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
 };
 
 // ========================================
@@ -5121,11 +5288,9 @@ function updateActivityChart() {
     const activityMinutes = [];
 
     last7Days.forEach(date => {
-        const activities = getActivitiesByDate(date);
-        const totalMinutes = activities.reduce((sum, act) => {
-            // Extract minutes from description (e.g., "30 min" -> 30)
-            const match = act.description.match(/(\d+)\s*min/i);
-            return sum + (match ? parseInt(match[1]) : 0);
+        const dayActivities = getActivitiesByDate(date);
+        const totalMinutes = dayActivities.reduce((sum, act) => {
+            return sum + (parseInt(act.duration) || 0);
         }, 0);
         activityMinutes.push(totalMinutes);
     });
