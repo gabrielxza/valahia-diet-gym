@@ -3715,14 +3715,9 @@ function loadPersonalRecords() {
     const container = document.getElementById('pr-list');
     if (!container) return;
 
-    // Show section if goal is set (any type)
+    // Sezione sempre visibile
     const section = document.getElementById('pr-section');
-    if (goal) {
-        section.style.display = 'block';
-    } else {
-        section.style.display = 'none';
-        return;
-    }
+    if (section) section.style.display = 'block';
 
     if (personalRecords.length === 0) {
         container.innerHTML = '<p class="empty-state">Nessun massimale registrato</p>';
@@ -3814,14 +3809,9 @@ function loadProgressPhotos() {
     const container = document.getElementById('photos-grid');
     if (!container) return;
 
-    // Show section if goal is set (any type)
+    // Sezione sempre visibile
     const section = document.getElementById('photos-section');
-    if (goal) {
-        section.style.display = 'block';
-    } else {
-        section.style.display = 'none';
-        return;
-    }
+    if (section) section.style.display = 'block';
 
     if (progressPhotos.length === 0) {
         container.innerHTML = '<p class="empty-state">Nessuna foto caricata</p>';
@@ -4255,20 +4245,13 @@ function init() {
 // ========================================
 
 function initializeAdvancedFeatures() {
-    const goal = getGoal();
-    if (!goal) return;
-
-    // Show sections based on user type
-    document.getElementById('timer-section').style.display = 'block';
-    document.getElementById('water-section').style.display = 'block';
-    document.getElementById('strength-section').style.display = 'block';
-    document.getElementById('macros-section').style.display = 'block';
-
-    // Show performance and measurements for muscle-gain/performance users
-    if (goal.type === 'muscle-gain' || goal.type === 'performance') {
-        document.getElementById('performance-section').style.display = 'block';
-        document.getElementById('measurements-section').style.display = 'block';
-    }
+    // Mostra sempre tutte le sezioni avanzate (non richiedono goal)
+    const always = ['timer-section', 'water-section', 'strength-section', 'macros-section',
+                    'performance-section', 'measurements-section'];
+    always.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'block';
+    });
 }
 
 // ========================================
@@ -4880,16 +4863,11 @@ let activityChartInstance = null;
 
 // Initialize all charts
 function initializeCharts() {
-    // Show charts section for all users
-    const goal = getGoal();
-    if (goal) {
-        document.getElementById('charts-section').style.display = 'block';
-
-        // Show PR chart only for muscle-gain/performance users
-        if (goal.type === 'muscle-gain' || goal.type === 'performance') {
-            document.getElementById('pr-chart-card').style.display = 'block';
-        }
-    }
+    // Mostra sempre grafici e PR chart
+    const chartsSection = document.getElementById('charts-section');
+    if (chartsSection) chartsSection.style.display = 'block';
+    const prChartCard = document.getElementById('pr-chart-card');
+    if (prChartCard) prChartCard.style.display = 'block';
 }
 
 // Update all charts with latest data

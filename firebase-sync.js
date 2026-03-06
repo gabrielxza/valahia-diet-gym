@@ -32,20 +32,27 @@ let syncEnabled = false;
 let lastSyncTime = null;
 
 // ========================================
+// PROFILE-ISOLATED FIRESTORE PATH
+// Each profile gets its own document: users/{uid}/profiles/{currentUser}
+// e.g. users/abc123/profiles/gabriel  — users/abc123/profiles/diana
+// ========================================
+
+function getProfileDoc() {
+    return db.collection('users').doc(currentFirebaseUser.uid)
+             .collection('profiles').doc(currentUser);
+}
+
+// ========================================
 // AUTHENTICATION
 // ========================================
 
-// Detect if running as native Android app
 function isNativeApp() {
     return !!(window.Capacitor && window.Capacitor.isNativePlatform());
 }
 
-// Sign in with Google
 window.signInWithFirebase = async function() {
     try {
         if (isNativeApp()) {
-            // Native app: use @capacitor-firebase/authentication plugin
-            // This opens native Google Sign-In dialog (no WebView redirect)
             const FirebaseAuthentication = window.Capacitor.Plugins.FirebaseAuthentication;
             if (!FirebaseAuthentication) {
                 alert('❌ Firebase Authentication plugin non trovato\n\nRicompila l\'app.');
@@ -62,13 +69,11 @@ window.signInWithFirebase = async function() {
             await handleFirebaseSignIn(userCredential.user);
             return true;
         } else {
-            // Browser PWA: use popup
             const provider = new firebase.auth.GoogleAuthProvider();
             const result = await auth.signInWithPopup(provider);
             await handleFirebaseSignIn(result.user);
             return true;
         }
-
     } catch (error) {
         console.error('Firebase sign-in error:', error);
         alert('❌ Errore accesso Firebase\n\n' + error.message + '\n\nRiprova o continua senza sync cloud.');
@@ -78,12 +83,11 @@ window.signInWithFirebase = async function() {
 
 async function handleFirebaseSignIn(user) {
     currentFirebaseUser = user;
-    console.log('✅ Firebase signed in:', user.email);
+    console.log('✅ Firebase signed in:', user.email, 'profilo:', currentUser);
 
     localStorage.setItem(`firebase_sync_enabled_${currentUser}`, 'true');
     syncEnabled = true;
 
-    // If local data is empty (fresh install), download from cloud instead of overwriting it
     const localHasData = (typeof meals !== 'undefined' && meals.length > 0)
         || (typeof weights !== 'undefined' && weights.length > 0)
         || (typeof goal !== 'undefined' && goal !== null);
@@ -95,24 +99,23 @@ async function handleFirebaseSignIn(user) {
     }
     startRealtimeSync();
 
-    alert(`✅ Cloud Sync attivato!\n\n📧 Account: ${user.email}\n\n🔄 I tuoi dati saranno sincronizzati su tutti i dispositivi!`);
+    alert(`✅ Cloud Sync attivato!\n\n👤 Profilo: ${currentUser}\n📧 Account: ${user.email}\n\n🔄 I dati di ${currentUser} saranno sincronizzati!`);
 
     if (typeof window.updateCloudSyncUI === 'function') {
         window.updateCloudSyncUI(true, user.email, lastSyncTime);
     }
 }
 
-// Controlla se già loggato
+// Auto-restore sync on page load
 auth.onAuthStateChanged(async (user) => {
     if (user) {
         currentFirebaseUser = user;
-        if (syncEnabled) return; // handleFirebaseSignIn already running, skip duplicate
+        if (syncEnabled) return;
         const syncPref = localStorage.getItem(`firebase_sync_enabled_${currentUser}`);
 
         if (syncPref === 'true') {
             syncEnabled = true;
-            console.log('🔄 Auto-sync cloud attivo per:', user.email);
-
+            console.log('🔄 Auto-sync attivo per profilo:', currentUser);
             await loadDataFromFirestore();
             startRealtimeSync();
         }
@@ -125,11 +128,8 @@ auth.onAuthStateChanged(async (user) => {
 
 async function migrateLocalDataToFirestore() {
     try {
-        console.log('📤 Migrazione dati localStorage → Firestore...');
+        console.log('📤 Upload dati profilo', currentUser, '→ Firestore...');
 
-        const userDoc = db.collection('users').doc(currentFirebaseUser.uid);
-
-        // Prepara tutti i dati
         const dataToMigrate = {
             localUsername: currentUser,
             meals: JSON.parse(localStorage.getItem(`meals_${currentUser}`) || '[]'),
@@ -141,20 +141,12 @@ async function migrateLocalDataToFirestore() {
             dailySteps: JSON.parse(localStorage.getItem(`dailySteps_${currentUser}`) || '{}'),
             workoutTracking: JSON.parse(localStorage.getItem(`workoutTracking_${currentUser}`) || '{}'),
             lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-            deviceInfo: {
-                userAgent: navigator.userAgent,
-                lastSyncedFrom: 'migration'
-            }
+            deviceInfo: { userAgent: navigator.userAgent, lastSyncedFrom: 'migration' }
         };
 
-        // Upload in batch
-        const batch = db.batch();
+        await getProfileDoc().set(dataToMigrate, { merge: true });
 
-        batch.set(userDoc, dataToMigrate, { merge: true });
-
-        await batch.commit();
-
-        console.log('✅ Migrazione completata!');
+        console.log('✅ Upload completato per profilo:', currentUser);
         lastSyncTime = new Date().toISOString();
         localStorage.setItem(`last_firebase_sync_${currentUser}`, lastSyncTime);
 
@@ -170,57 +162,63 @@ async function migrateLocalDataToFirestore() {
 
 async function loadDataFromFirestore() {
     try {
-        console.log('📥 Caricamento dati da Firestore...');
+        console.log('📥 Download dati profilo', currentUser, 'da Firestore...');
 
-        const userDoc = await db.collection('users').doc(currentFirebaseUser.uid).get();
+        let snapshot = await getProfileDoc().get();
 
-        if (!userDoc.exists) {
-            console.log('Nessun dato cloud trovato, uso dati locali');
+        // Fallback: vecchio path legacy (users/{uid}) — migra solo se localUsername corrisponde
+        if (!snapshot.exists) {
+            const legacyDoc = await db.collection('users').doc(currentFirebaseUser.uid).get();
+            if (legacyDoc.exists && legacyDoc.data().localUsername === currentUser) {
+                console.log('📦 Migrazione automatica dal vecchio path per:', currentUser);
+                await getProfileDoc().set(legacyDoc.data(), { merge: true });
+                snapshot = await getProfileDoc().get();
+            }
+        }
+
+        if (!snapshot.exists) {
+            console.log('Nessun dato cloud per profilo', currentUser, '— uso dati locali');
             return;
         }
 
-        const cloudData = userDoc.data();
+        const cloudData = snapshot.data();
 
-        // Carica sempre i dati dal cloud (fonte di verità)
-
-        // Aggiorna localStorage con dati cloud (solo se il campo cloud è non-vuoto)
-        if (cloudData.meals && cloudData.meals.length > 0) localStorage.setItem(`meals_${currentUser}`, JSON.stringify(cloudData.meals));
-        if (cloudData.weights && cloudData.weights.length > 0) localStorage.setItem(`weights_${currentUser}`, JSON.stringify(cloudData.weights));
-        if (cloudData.activities && cloudData.activities.length > 0) localStorage.setItem(`activities_${currentUser}`, JSON.stringify(cloudData.activities));
+        // Aggiorna localStorage
+        if (cloudData.meals?.length > 0) localStorage.setItem(`meals_${currentUser}`, JSON.stringify(cloudData.meals));
+        if (cloudData.weights?.length > 0) localStorage.setItem(`weights_${currentUser}`, JSON.stringify(cloudData.weights));
+        if (cloudData.activities?.length > 0) localStorage.setItem(`activities_${currentUser}`, JSON.stringify(cloudData.activities));
         if (cloudData.goal) localStorage.setItem(`goal_${currentUser}`, JSON.stringify(cloudData.goal));
         if (cloudData.selectedDiet) localStorage.setItem(`diet_${currentUser}`, cloudData.selectedDiet);
         if (cloudData.dailyTracking && Object.keys(cloudData.dailyTracking).length > 0) localStorage.setItem(`dailyTracking_${currentUser}`, JSON.stringify(cloudData.dailyTracking));
         if (cloudData.dailySteps && Object.keys(cloudData.dailySteps).length > 0) localStorage.setItem(`dailySteps_${currentUser}`, JSON.stringify(cloudData.dailySteps));
-        if (cloudData.workoutTracking && cloudData.workoutTracking.completedWorkouts?.length > 0) localStorage.setItem(`workoutTracking_${currentUser}`, JSON.stringify(cloudData.workoutTracking));
+        if (cloudData.workoutTracking?.completedWorkouts?.length > 0) localStorage.setItem(`workoutTracking_${currentUser}`, JSON.stringify(cloudData.workoutTracking));
 
-        // Aggiorna TUTTE le variabili globali in app.js (solo se il campo cloud è non-vuoto)
-        if (typeof meals !== 'undefined' && cloudData.meals && cloudData.meals.length > 0) meals = cloudData.meals;
-        if (typeof weights !== 'undefined' && cloudData.weights && cloudData.weights.length > 0) weights = cloudData.weights;
-        if (typeof activities !== 'undefined' && cloudData.activities && cloudData.activities.length > 0) activities = cloudData.activities;
+        // Aggiorna variabili globali
+        if (typeof meals !== 'undefined' && cloudData.meals?.length > 0) meals = cloudData.meals;
+        if (typeof weights !== 'undefined' && cloudData.weights?.length > 0) weights = cloudData.weights;
+        if (typeof activities !== 'undefined' && cloudData.activities?.length > 0) activities = cloudData.activities;
         if (typeof goal !== 'undefined' && cloudData.goal) goal = cloudData.goal;
         if (typeof selectedDiet !== 'undefined' && cloudData.selectedDiet) selectedDiet = cloudData.selectedDiet;
         if (typeof dailyTracking !== 'undefined' && cloudData.dailyTracking && Object.keys(cloudData.dailyTracking).length > 0) dailyTracking = cloudData.dailyTracking;
         if (typeof dailySteps !== 'undefined' && cloudData.dailySteps && Object.keys(cloudData.dailySteps).length > 0) dailySteps = cloudData.dailySteps;
-        if (typeof workoutTracking !== 'undefined' && cloudData.workoutTracking && cloudData.workoutTracking.completedWorkouts?.length > 0) workoutTracking = cloudData.workoutTracking;
+        if (typeof workoutTracking !== 'undefined' && cloudData.workoutTracking?.completedWorkouts?.length > 0) workoutTracking = cloudData.workoutTracking;
 
         lastSyncTime = cloudData.lastUpdated?.toDate()?.toISOString() || new Date().toISOString();
         localStorage.setItem(`last_firebase_sync_${currentUser}`, lastSyncTime);
 
-        console.log('✅ Dati sincronizzati da cloud');
+        console.log('✅ Dati profilo', currentUser, 'sincronizzati da cloud');
 
-        // Aggiorna UI cloud sync timestamp
         if (typeof window.updateCloudSyncUI === 'function' && currentFirebaseUser) {
             window.updateCloudSyncUI(true, currentFirebaseUser.email, lastSyncTime);
         }
 
-        // Ricarica tutta l'UI con i nuovi dati
+        // Ricarica UI
         const uiFunctions = [
             'loadTodayMeals', 'loadTodayCalories', 'loadTodayActivities',
             'loadTodayActivityStats', 'loadCurrentWeight', 'loadWeightChart',
             'loadGoalStatus', 'loadSelectedDiet', 'updateGoalProgress',
-            'displayTodaysWorkout',
-            'loadTodaysPlan', 'updateDailySummary', 'updateWeeklyChart',
-            'loadDailySteps', 'updateCharts', 'updateBadges',
+            'displayTodaysWorkout', 'loadTodaysPlan', 'updateDailySummary',
+            'updateWeeklyChart', 'loadDailySteps', 'updateCharts', 'updateBadges',
             'loadBodyMeasurements', 'loadWaterIntake', 'updateMacros',
             'updatePerformanceMetrics', 'checkCalorieAlert'
         ];
@@ -232,10 +230,7 @@ async function loadDataFromFirestore() {
 
     } catch (error) {
         console.error('Errore caricamento da Firestore:', error);
-        if (error.code) {
-            // Errore Firestore reale (permission-denied, unavailable, ecc.)
-            alert('❌ Errore Cloud Sync\n\nCodice: ' + error.code);
-        }
+        if (error.code) alert('❌ Errore Cloud Sync\n\nCodice: ' + error.code);
     }
 }
 
@@ -247,19 +242,17 @@ let unsubscribeSnapshot = null;
 
 function startRealtimeSync() {
     if (!syncEnabled || !currentFirebaseUser) return;
-    if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; } // prevent duplicate listeners
+    if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; }
 
-    // Listen for changes da altri dispositivi
-    unsubscribeSnapshot = db.collection('users').doc(currentFirebaseUser.uid)
+    // Ascolta cambiamenti SOLO per il profilo corrente
+    unsubscribeSnapshot = getProfileDoc()
         .onSnapshot((doc) => {
             if (doc.exists) {
                 const cloudData = doc.data();
                 const cloudTimestamp = cloudData.lastUpdated?.toDate()?.toISOString();
                 const localTimestamp = localStorage.getItem(`last_firebase_sync_${currentUser}`);
-
-                // Solo sync se dati cloud più recenti
                 if (!localTimestamp || cloudTimestamp > localTimestamp) {
-                    console.log('🔄 Dati aggiornati da altro dispositivo, sincronizzazione...');
+                    console.log('🔄 Aggiornamento da altro dispositivo per profilo:', currentUser);
                     loadDataFromFirestore();
                 }
             }
@@ -267,30 +260,23 @@ function startRealtimeSync() {
             console.error('Snapshot error:', error);
         });
 
-    console.log('👂 Real-time sync attivo');
+    console.log('👂 Real-time sync attivo per profilo:', currentUser);
 }
 
 function stopRealtimeSync() {
-    if (unsubscribeSnapshot) {
-        unsubscribeSnapshot();
-        unsubscribeSnapshot = null;
-    }
+    if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; }
     syncEnabled = false;
     console.log('🛑 Real-time sync fermato');
 }
 
 // ========================================
-// SAVE TO FIRESTORE (chiamata da app.js)
+// SAVE TO FIRESTORE
 // ========================================
 
 window.syncToFirestore = async function() {
-    if (!syncEnabled || !currentFirebaseUser) {
-        return; // Sync disabilitato
-    }
+    if (!syncEnabled || !currentFirebaseUser) return;
 
     try {
-        const userDoc = db.collection('users').doc(currentFirebaseUser.uid);
-
         const dataToSync = {
             localUsername: currentUser,
             meals: JSON.parse(localStorage.getItem(`meals_${currentUser}`) || '[]'),
@@ -304,14 +290,13 @@ window.syncToFirestore = async function() {
             lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
         };
 
-        await userDoc.set(dataToSync, { merge: true });
+        await getProfileDoc().set(dataToSync, { merge: true });
 
         lastSyncTime = new Date().toISOString();
         localStorage.setItem(`last_firebase_sync_${currentUser}`, lastSyncTime);
 
-        console.log('✅ Dati sincronizzati su cloud');
+        console.log('✅ Dati profilo', currentUser, 'salvati su cloud');
 
-        // Update UI with last sync time
         if (typeof window.updateCloudSyncUI === 'function' && currentFirebaseUser) {
             window.updateCloudSyncUI(true, currentFirebaseUser.email, lastSyncTime);
         }
@@ -342,14 +327,10 @@ window.signOutFromFirebase = async function() {
 // AUTO-SYNC ON DATA CHANGE
 // ========================================
 
-// Override saveData() per auto-sync
 const originalSaveData = window.saveData;
 window.saveData = function() {
-    // Chiama funzione originale
     if (originalSaveData) originalSaveData();
-
-    // Poi sync to Firestore
     window.syncToFirestore();
 };
 
-console.log('🔥 Firebase sync module loaded');
+console.log('🔥 Firebase sync module loaded — profilo:', currentUser);
