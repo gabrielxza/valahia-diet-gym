@@ -5081,24 +5081,26 @@ function updateWeightChart() {
     const weights = getAllWeights();
     const goal = getGoal();
 
-    // Get last 30 days
-    const last30Days = [];
+    // Get last 30 days in ISO format (YYYY-MM-DD) for data lookup
+    const last30DaysISO = [];
+    const last30DaysLabels = [];
     const today = new Date();
     for (let i = 29; i >= 0; i--) {
         const date = new Date(today);
         date.setDate(date.getDate() - i);
-        last30Days.push(formatDate(date));
+        last30DaysISO.push(date.toISOString().split('T')[0]);
+        last30DaysLabels.push(date.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }));
     }
 
     // Map weights to dates
-    const weightData = last30Days.map(date => {
+    const weightData = last30DaysISO.map(date => {
         const weight = weights.find(w => w.date === date);
         return weight ? weight.weight : null;
     });
 
     // Goal line
     const goalWeight = goal ? goal.targetWeight : null;
-    const goalData = last30Days.map(() => goalWeight);
+    const goalData = last30DaysISO.map(() => goalWeight);
 
     // Destroy existing chart
     if (weightChartInstance) {
@@ -5109,10 +5111,7 @@ function updateWeightChart() {
     weightChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: last30Days.map(date => {
-                const d = new Date(date.split('/').reverse().join('-'));
-                return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
-            }),
+            labels: last30DaysLabels,
             datasets: [
                 {
                     label: 'Peso Attuale',
