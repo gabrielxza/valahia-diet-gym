@@ -4207,10 +4207,6 @@ function init() {
     updateGoalProgress();
     checkCalorieAlert();
 
-    // Load today's adaptive plan
-    loadTodaysPlan();
-    updateDailySummary();
-    updateWeeklyChart();
 
     // Load PR and Photos
     loadPersonalRecords();
