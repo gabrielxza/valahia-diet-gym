@@ -214,6 +214,7 @@ function completeWorkout() {
                 date: today,
                 type: 'palestra',
                 duration: estimatedDuration,
+                intensity: 'moderata',
                 calories: kcal,
                 notes: workoutName,
                 source: 'workout_complete',
