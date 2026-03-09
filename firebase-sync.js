@@ -260,16 +260,14 @@ function startRealtimeSync() {
     if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; }
 
     // Ascolta cambiamenti SOLO per il profilo corrente
+    let firstSnapshot = true;
     unsubscribeSnapshot = getProfileDoc()
-        .onSnapshot((doc) => {
-            if (doc.exists) {
-                const cloudData = doc.data();
-                const cloudTimestamp = cloudData.lastUpdated?.toDate()?.toISOString();
-                const localTimestamp = localStorage.getItem(`last_firebase_sync_${currentUser}`);
-                if (!localTimestamp || cloudTimestamp > localTimestamp) {
-                    console.log('🔄 Aggiornamento da altro dispositivo per profilo:', currentUser);
-                    loadDataFromFirestore();
-                }
+        .onSnapshot({ includeMetadataChanges: false }, (doc) => {
+            // Salta il primo snapshot (è solo la conferma del dato già caricato)
+            if (firstSnapshot) { firstSnapshot = false; return; }
+            if (doc.exists && !doc.metadata.hasPendingWrites) {
+                console.log('🔄 Aggiornamento da altro dispositivo per profilo:', currentUser);
+                loadDataFromFirestore();
             }
         }, (error) => {
             console.error('Snapshot error:', error);
