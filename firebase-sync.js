@@ -88,15 +88,31 @@ async function handleFirebaseSignIn(user) {
     localStorage.setItem(`firebase_sync_enabled_${currentUser}`, 'true');
     syncEnabled = true;
 
+    // Controlla cloud prima di decidere la direzione del sync
+    let cloudSnapshot = null;
+    try { cloudSnapshot = await getProfileDoc().get(); } catch(e) {}
+
+    const cloudData = cloudSnapshot?.exists ? cloudSnapshot.data() : null;
+    const cloudTimestamp = cloudData?.lastUpdated?.toDate?.()?.toISOString() || null;
+    const localTimestamp = localStorage.getItem(`last_firebase_sync_${currentUser}`);
+
     const localHasData = (typeof meals !== 'undefined' && meals.length > 0)
         || (typeof weights !== 'undefined' && weights.length > 0)
         || (typeof goal !== 'undefined' && goal !== null);
 
-    if (localHasData) {
-        await migrateLocalDataToFirestore();
-    } else {
+    if (!cloudData) {
+        // Nessun dato cloud → carica locale su cloud (prima volta)
+        if (localHasData) await migrateLocalDataToFirestore();
+    } else if (!localTimestamp || cloudTimestamp > localTimestamp) {
+        // Cloud più recente → scarica da cloud (vince il telefono/altro dispositivo)
+        console.log('☁️ Cloud più recente — scarico da Firestore');
         await loadDataFromFirestore();
+    } else {
+        // Locale più recente → carica su cloud
+        console.log('💾 Locale più recente — carico su Firestore');
+        await migrateLocalDataToFirestore();
     }
+
     startRealtimeSync();
 
     alert(`✅ Cloud Sync attivato!\n\n👤 Profilo: ${currentUser}\n📧 Account: ${user.email}\n\n🔄 I dati di ${currentUser} saranno sincronizzati!`);
