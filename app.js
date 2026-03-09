@@ -632,7 +632,7 @@ function loadWeightChart() {
 const ACTIVITY_MET_VALUES = {
     'camminata': { bassa: 2.5, media: 3.5, alta: 4.5 },
     'corsa': { bassa: 7.0, media: 9.0, alta: 11.0 },
-    'treadmill': { bassa: 7.0, media: 9.0, alta: 11.0 },
+    'treadmill': { bassa: 3.0, media: 4.5, alta: 8.0 },
     'bicicletta': { bassa: 4.0, media: 6.0, alta: 8.0 },
     'nuoto': { bassa: 5.0, media: 7.0, alta: 10.0 },
     'palestra': { bassa: 3.0, media: 5.0, alta: 7.0 },
