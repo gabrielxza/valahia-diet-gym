@@ -3912,6 +3912,7 @@ document.getElementById('form-add-pr')?.addEventListener('submit', (e) => {
 
     personalRecords.push(pr);
     localStorage.setItem(`pr_${currentUser}`, JSON.stringify(personalRecords));
+    if (typeof window.syncToFirestore === 'function') window.syncToFirestore();
 
     alert(`💪 Nuovo PR registrato!\n\n${getExerciseName(exercise)}: ${value} ${unit}`);
 
@@ -4149,12 +4150,13 @@ document.getElementById('form-daily-steps')?.addEventListener('submit', (e) => {
     };
 
     localStorage.setItem(`dailySteps_${currentUser}`, JSON.stringify(dailySteps));
+    if (typeof window.syncToFirestore === 'function') window.syncToFirestore();
 
     alert(`✅ Passi registrati!\n\n👟 ${steps.toLocaleString()} passi\n🔥 ${calories} kcal extra bruciate`);
 
     closeModal('modal-daily-steps');
     loadDailySteps();
-    updateDailySummary(); // Update to include steps calories
+    updateDailySummary();
 });
 
 function loadDailySteps() {
@@ -4618,7 +4620,7 @@ function updatePerformanceMetrics() {
         activities.forEach(activity => {
             // Extract sets x reps x weight from description
             // Example: "Squat 5x5 100kg" -> 5*5*100 = 2500kg
-            const match = activity.description.match(/(\d+)\s*x\s*(\d+)\s*x?\s*(\d+\.?\d*)\s*kg/i);
+            const match = (activity.description || '').match(/(\d+)\s*x\s*(\d+)\s*x?\s*(\d+\.?\d*)\s*kg/i);
             if (match) {
                 const sets = parseInt(match[1]);
                 const reps = parseInt(match[2]);
@@ -4753,6 +4755,7 @@ window.saveMeasurements = function(event) {
     const measurements = JSON.parse(localStorage.getItem(`measurements_${currentUser}`)) || [];
     measurements.push(measurement);
     localStorage.setItem(`measurements_${currentUser}`, JSON.stringify(measurements));
+    if (typeof window.syncToFirestore === 'function') window.syncToFirestore();
 
     alert('✅ Misure salvate!');
     document.querySelector('.modal').remove();
@@ -5077,6 +5080,7 @@ window.addWater = function(amount) {
     const waterData = JSON.parse(localStorage.getItem(`water_${currentUser}`)) || {};
     waterData[todayDate] = (waterData[todayDate] || 0) + amount;
     localStorage.setItem(`water_${currentUser}`, JSON.stringify(waterData));
+    if (typeof window.syncToFirestore === 'function') window.syncToFirestore();
 
     loadWaterIntake();
 
@@ -5099,6 +5103,7 @@ window.resetWater = function() {
     const waterData = JSON.parse(localStorage.getItem(`water_${currentUser}`)) || {};
     waterData[todayDate] = 0;
     localStorage.setItem(`water_${currentUser}`, JSON.stringify(waterData));
+    if (typeof window.syncToFirestore === 'function') window.syncToFirestore();
 
     loadWaterIntake();
 };
