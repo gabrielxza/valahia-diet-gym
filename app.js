@@ -4121,7 +4121,7 @@ function updateStepsCaloriesPreview() {
     }
 
     // Formula: steps × weight × 0.04 kcal
-    const calories = Math.round(steps * weight * 0.04);
+    const calories = Math.round(steps * weight * 0.0004);
     document.getElementById('steps-calories-preview').textContent = `${calories} kcal`;
 }
 
@@ -4139,7 +4139,7 @@ document.getElementById('form-daily-steps')?.addEventListener('submit', (e) => {
     }
 
     // Calculate calories (steps × weight × 0.04)
-    const calories = Math.round(steps * weight * 0.04);
+    const calories = Math.round(steps * weight * 0.0004);
 
     dailySteps[date] = {
         steps,
